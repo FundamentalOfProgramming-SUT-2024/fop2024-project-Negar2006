@@ -1,0 +1,30 @@
+Room 0: x=18, y=4, width=4, height=6, revealed=0
+  Door 0: x=20, y=4
+  Door 1: x=20, y=9
+  Door 2: x=18, y=6
+  Door 3: x=21, y=5
+Room 1: x=47, y=1, width=13, height=7, revealed=0
+  Door 0: x=52, y=1
+  Door 1: x=58, y=7
+  Door 2: x=47, y=2
+  Door 3: x=59, y=2
+Room 2: x=71, y=2, width=11, height=7, revealed=0
+  Door 0: x=73, y=2
+  Door 1: x=75, y=8
+  Door 2: x=71, y=3
+  Door 3: x=81, y=7
+Room 3: x=76, y=15, width=13, height=8, revealed=0
+  Door 0: x=79, y=15
+  Door 1: x=84, y=22
+  Door 2: x=76, y=17
+  Door 3: x=88, y=17
+Room 4: x=40, y=15, width=9, height=9, revealed=0
+  Door 0: x=43, y=15
+  Door 1: x=46, y=23
+  Door 2: x=40, y=16
+  Door 3: x=48, y=20
+Room 5: x=13, y=16, width=13, height=7, revealed=0
+  Door 0: x=22, y=16
+  Door 1: x=23, y=22
+  Door 2: x=13, y=19
+  Door 3: x=25, y=21
