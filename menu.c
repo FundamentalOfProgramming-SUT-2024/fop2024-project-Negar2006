@@ -9,7 +9,6 @@
 
 #define FILENAME "users.txt"
 #define SCOREFILE "scores.txt"
-extern char **global_tile;
 
 typedef struct {
     char username[50];
@@ -124,11 +123,11 @@ int gameLoop()
     Level * level;
 
     level = createLevel(1);
-    printGameHub(level);
+    
     while ((ch = getch()) != '\n')
     {
         printGameHub(level);
-        newPosition = handleInput(ch, level->user,level);
+        newPosition = handleInput(ch, level->user, level);
         check_next_step(newPosition, level);
         move(level->user->position->y,level->user->position->x);
         if (level->user->health <= 0)
@@ -164,9 +163,8 @@ void pre_game_menu(const char *username) {
         switch (choice) {
             case 1:
                 clear();
-                
                 gameLoop();
-                mvprintw(12,10,"G");
+                refresh();
                 break;
             case 2:
                 clear();

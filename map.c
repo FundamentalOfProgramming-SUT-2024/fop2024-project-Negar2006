@@ -2,105 +2,32 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <locale.h>
+#include <wchar.h>
 
-char ** global_tile;
-void allocate_global(int row, int col){
-    global_tile = malloc(sizeof(char *) * row);
-    for(int i = 0 ; i < col; i++){
-        global_tile[i] = malloc(col * sizeof(char));
-        
-    }
-    for(int i = 0 ; i < row;i++){
-        for(int j = 0 ; j < col;j++){
-            global_tile[i][j] = ' ';
-        }
-    }
-}
-void free_global(int row){
-    for(int i = 0 ; i < row; i++){
-        free(global_tile[i]);
-    }
-    free(global_tile);
-}
+#include "monster.c"
 
-typedef struct Level
-{
-    char **tile;
-	int level;
-	int numberOfRooms;
-	struct Room ** rooms;
-	struct Monster ** monsters;
-	int numberOfMonsters;
-	struct Player * user;
-} Level;
-
-typedef struct Position {
-	int x;
-	int y;
-} Position;
-
-typedef struct Room
-{
-	Position position;
-	int height;
-	int width;
-	struct Door ** doors;
-	int numberOfDoors;
-    int visible;
-} Room;
-
-typedef struct Door
-{
-	Position position;
-	int connected;
-} Door;
-
-typedef struct Player
-{
-	Position * position;
-	int health;
-	int attack;
-	int gold;
-	int maxHealth;
-	int exp;
-} Player;
-
-typedef struct Monster
-{
-	char string[2];
-	char symbol;
-	int health;
-	int attack;
-	int speed;
-	int defence;
-	int pathfinding;
-	int alive;
-	Position * position;
-} Monster;
-
+void printGameHub(Level * level);
 Room * createRoom(int grid, int numberOfDoors);
 void print_room(Room * room);
-Room ** room_set();
-void Connect_doors(Position * start, Position * end);
+void placePlayer(Room ** rooms, Player * user);
 void addPositionYX(int ** frontier, int frontierCount, int y, int x);
 int checkPosition(int y, int x);
 int addNeighbors(int ** frontier, int frontierCount, int *** cameFrom, int y, int x);
-Level * createLevel(int level);
-char ** saveLevelPositions();
+void pathFind(Position * start, Position * end);
+void connectDoors(Level * level);
 Player * playerSetUp();
 Position * handleInput(int input, Player * user,Level *level);
-void check_next_step(Position * newPosition, Level * level);
-void placePlayer(Room ** rooms, Player * user);
+void visited_tiles(Level * level);
+void playerMove(Position * newPosition, Player * user, Level * level);
 void drawPlayer(Player * player);
-Room * createRoom(int grid, int numberOfDoors);
-int drawRoom(Room * room);
-void setStartingPosition(Monster * monster, Room * room);
-void printGameHub(Level * level);
-void playerMove(Position * newPosition, Player * user, char ** level);
-void drawLevel_completly(Level * level);
-void printGameHub(Level * level);
-void draw_circle(int playerX, int playerY, int radius);
-
+int **initializeVisitedArray();
+Level * createLevel(int level);
+void drawLevel(Level * level);
+Room ** room_set(Level *level);
+char ** saveLevelPositions();
+void revealRoom(Level *level, Room *room);
+void check_next_step(Position * newPosition, Level * level);
 
 Room * createRoom(int grid, int numberOfDoors)
 {
@@ -113,28 +40,28 @@ Room * createRoom(int grid, int numberOfDoors)
 	{
 	case 0:
 		newRoom->position.x = 0;
-		newRoom->position.y = 0;
+		newRoom->position.y = 4;
 		break;
 	case 1:
 		newRoom->position.x = 33;
-		newRoom->position.y = 0;
+		newRoom->position.y = 4;
 		break;
 
 	case 2:
 		newRoom->position.x = 66;
-		newRoom->position.y = 0;
+		newRoom->position.y = 4;
 		break;
     case 3:
 		newRoom->position.x = 66;
-		newRoom->position.y = 14;
+		newRoom->position.y = 18;
 		break;
 	case 4:
 		newRoom->position.x = 33;
-		newRoom->position.y = 14;
+		newRoom->position.y = 18;
 		break;
     case 5:
 		newRoom->position.x = 0;
-		newRoom->position.y = 14;
+		newRoom->position.y = 18;
 		break;
 
 	}
@@ -144,10 +71,30 @@ Room * createRoom(int grid, int numberOfDoors)
 	newRoom->position.x += rand() % (30 - newRoom->width) + 1;
 	newRoom->position.y += rand() % (14 - newRoom->height) + 1;
 
+	newRoom->cols = malloc(sizeof(Position *) * 2);
+	for (int i = 0; i < 2; i++){
+		newRoom->cols[i] = malloc(sizeof(Position));
+	}
+	newRoom->cols[0]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->cols[0]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+
+	newRoom->cols[1]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->cols[1]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+
+	newRoom->window = malloc(sizeof(Position *) * 2);
+	for (int i = 0; i < 2; i++){
+		newRoom->window[i] = malloc(sizeof(Position));
+	}
+
+	newRoom->window[0]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->window[0]->y = newRoom->position.y;
+
+	newRoom->window[1]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->window[1]->y = newRoom->position.y + newRoom->height - 1;
+
 	newRoom->doors = malloc(sizeof(Door *) * numberOfDoors);
 
-	for (int i = 0; i < numberOfDoors; i++)
-	{
+	for (int i = 0; i < numberOfDoors; i++){
 		newRoom->doors[i] = malloc(sizeof(Door));
 		newRoom->doors[i]->connected = 0;
 	}
@@ -163,6 +110,7 @@ Room * createRoom(int grid, int numberOfDoors)
 	newRoom->doors[3]->position.y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
 	newRoom->doors[3]->position.x = newRoom->position.x + newRoom->width - 1;
 
+
 	return newRoom;
 }
 void print_room(Room * room)
@@ -170,44 +118,32 @@ void print_room(Room * room)
 	int x,y;
 	for (x = room->position.x; x < room->position.x + room->width; x++) {
 		mvprintw(room->position.y, x, "_");
-        global_tile[room->position.y][x] = '_';
 		mvprintw(room->position.y + room->height - 1, x, "_");
-        global_tile[room->position.y + room->height - 1][x] = '_';
 
 	}
 	for (y = room->position.y + 1; y < room->position.y + room->height - 1; y++)
 	{
 		mvprintw(y, room->position.x, "|");
-        global_tile[y][room->position.x] = '|';
 		mvprintw(y, room->position.x + room->width - 1, "|");
-        global_tile[y][room->position.x + room->width - 1] = '|';
 
 		for (x = room->position.x + 1; x <room->position.x + room->width - 1; x++)
 		{
 			mvprintw(y, x, ".");
-            global_tile[y][x] = '.';
 		}
 	}
-	mvprintw(room->doors[0]->position.y, room->doors[0]->position.x, "+");
-    global_tile[room->doors[0]->position.y][room->doors[0]->position.x] = '+';
-	mvprintw(room->doors[1]->position.y, room->doors[1]->position.x, "+");
-    global_tile[room->doors[1]->position.y][room->doors[1]->position.x] = '+';
+	mvprintw(room->cols[0]->y,room->cols[0]->x,"O");
+	mvprintw(room->cols[1]->y,room->cols[1]->x,"O");
+
+	mvprintw(room->window[0]->y, room->window[0]->x, "=");
+    mvprintw(room->window[1]->y, room->window[1]->x, "=");
+
 	mvprintw(room->doors[2]->position.y, room->doors[2]->position.x, "+");
-    global_tile[room->doors[2]->position.y][room->doors[2]->position.x] = '+';
 	mvprintw(room->doors[3]->position.y, room->doors[3]->position.x, "+");
-    global_tile[room->doors[3]->position.y][room->doors[3]->position.x] = '+';
 
 }
-Room ** room_set() {
-	int x;
-	Room ** rooms;
-	rooms = malloc(sizeof(Room)*6);
-
-	for (x = 0; x < 6; x++) {
-		rooms[x] = createRoom(x, 4);
-		print_room(rooms[x]);
-	}
-	return rooms;
+void placePlayer(Room ** rooms, Player * user) {
+	user->position->x = rooms[0]->position.x + 1;
+	user->position->y = rooms[0]->position.y + 1;
 }
 void addPositionYX(int ** frontier, int frontierCount, int y, int x) {
 	frontier[frontierCount][0] = y;
@@ -257,7 +193,7 @@ int addNeighbors(int ** frontier, int frontierCount, int *** cameFrom, int y, in
 	return frontierCount;
 
 }
-void Connect_doors(Position * start, Position * end) {
+void pathFind(Position * start, Position * end) {
 	int i, j;
 	int x, y;
 	int tempY;
@@ -307,9 +243,22 @@ void Connect_doors(Position * start, Position * end) {
 		tempY = y;
 		y = cameFrom[tempY][x][0];
 		x = cameFrom[tempY][x][1];
-		//mvprintw(y, x, "#");
-        global_tile[y][x] = '#';
+		mvprintw(y, x, "#");
 	}
+}
+void connectDoors(Level * level){
+    int i, j;
+    int randomRoom, randomDoor;
+    int count;
+
+    for (i = 0; i < 2; i++){
+        pathFind(&level->rooms[i]->doors[3]->position, &level->rooms[i+1]->doors[2]->position);	
+    }
+	pathFind(&level->rooms[2]->doors[3]->position,&level->rooms[3]->doors[3]->position);
+	for(j = 3; j < 5;j++){
+		pathFind(&level->rooms[j]->doors[2]->position, &level->rooms[j+1]->doors[3]->position);	
+	}
+	pathFind(&level->rooms[0]->doors[2]->position,&level->rooms[5]->doors[2]->position);
 }
 Player * playerSetUp() {
 	Player * newPlayer;
@@ -323,82 +272,87 @@ Player * playerSetUp() {
 
 	return newPlayer;
 }
-void placePlayer(Room ** rooms, Player * user) {
-	user->position->x = rooms[0]->position.x + 1;
-	user->position->y = rooms[0]->position.y + 1;
-}
 Position * handleInput(int input, Player * user, Level *level){
 	Position * newPosition;
 	newPosition = malloc(sizeof(Position));
 
-	if(input == 'f') {
-		input = getch();
-		switch(input) {
-		case '8':
-			newPosition->x = user->position->x;
-			newPosition->y = user->position->y -1;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->y--;
-			}
-			break;
-		case '2':
-			newPosition->x = user->position->x;
-			newPosition->y = user->position->y +1;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->y++;
-			}
-			break;
-		case '6':
-			newPosition->x = user->position->x + 1;
-			newPosition->y = user->position->y;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->x++;
-			}
-			break;
-		case '4':
-			newPosition->x = user->position->x - 1;
-			newPosition->y = user->position->y;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->x--;
-			}
-			break;
-		case '9':
-			newPosition->x = user->position->x + 1;
-			newPosition->y = user->position->y -1;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->y--;
-				newPosition->x++;
-			}
-			break;
-		case '7':
-			newPosition->x = user->position->x - 1;
-			newPosition->y = user->position->y -1;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->y--;
-				newPosition->x--;
-			}
-			break;
-		case '1':
-			newPosition->x = user->position->x - 1;
-			newPosition->y = user->position->y + 1;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->y++;
-				newPosition->x--;
-			}
-			break;
-		case '3':
-			newPosition->x = user->position->x + 1;
-			newPosition->y = user->position->y + 1;
-			while(mvinch(newPosition->y,newPosition->x) != '#' && mvinch(newPosition->y,newPosition->x) != '_' && mvinch(newPosition->y,newPosition->x)!='>' && mvinch(newPosition->y,newPosition->x)!='|') {
-				newPosition->y++;
-				newPosition->x++;
-			}
-			break;
-		default:
-			break;
-
+	if(input == 'f'){
+		int inputt = getch();
+		switch(inputt){
+			case '8':
+			    newPosition->y = user->position->y - 1;
+                newPosition->x = user->position->x;
+                while(newPosition->y >= 0  && level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->y--;
+				}
+                newPosition->y++; 
+                break;
+			 case '2':
+                newPosition->y = user->position->y + 1;
+                newPosition->x = user->position->x;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->y++;
+                }
+                newPosition->y--; 
+                break;
+            case '4':
+                newPosition->y = user->position->y;
+                newPosition->x = user->position->x - 1;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->x--;
+                }
+                newPosition->x++; 
+                break;
+            case '6':
+                newPosition->y = user->position->y;
+                newPosition->x = user->position->x + 1;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->x++;
+                }
+                newPosition->x--;
+                break;
+            case '1':
+                newPosition->y = user->position->y + 1;
+                newPosition->x = user->position->x - 1;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->y++;
+                    newPosition->x--;
+                }
+                newPosition->y--; 
+                newPosition->x++; 
+                break;
+            case '3':
+                newPosition->y = user->position->y + 1;
+                newPosition->x = user->position->x + 1;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->y++;
+                    newPosition->x++;
+                }
+                newPosition->y--; 
+                newPosition->x--;
+                break;
+            case '7':
+                newPosition->y = user->position->y - 1;
+                newPosition->x = user->position->x - 1;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->y--;
+                    newPosition->x--;
+                }
+                newPosition->y++; 
+                newPosition->x++; 
+                break;
+            case '9':
+                newPosition->y = user->position->y - 1;
+                newPosition->x = user->position->x + 1;
+                while(level->tile[newPosition->y][newPosition->x] != '|' && level->tile[newPosition->y][newPosition->x] != '_' && level->tile[newPosition->y][newPosition->x] != '+' && level->tile[newPosition->y][newPosition->x] != 'O'){
+                    newPosition->y--;
+                    newPosition->x++;
+                }
+                newPosition->y++; 
+                newPosition->x--; 
+                break;
+		    }
 		}
-	}
 	switch (input)
 	{
 	case '8':
@@ -439,9 +393,9 @@ Position * handleInput(int input, Player * user, Level *level){
 		newPosition->y = user->position->y - 1;
 		newPosition->x = user->position->x + 1;
 		break;
-    case 'q':
-        drawLevel_completly(level);
-        break;
+	case 'n':
+	    visited_tiles(level);
+		break;
 	default:
 		break;
 
@@ -449,86 +403,127 @@ Position * handleInput(int input, Player * user, Level *level){
 	return newPosition;
 
 }
-void playerMove(Position * newPosition, Player * user, char ** level) {
-	char temp = global_tile[user->position->y][user->position->x];
-	mvprintw(user->position->y, user->position->x,"%c",temp);
-
+void visited_tiles(Level * level){
+	for(int y = 0 ; y < 40; y++){
+		for(int x = 0; x < 100; x++){
+			level->visited[y][x] = 1;
+		}
+	}
+	drawLevel(level);
+}
+void playerMove(Position * newPosition, Player * user, Level * level) {
+	int Y = user->position->y;
+	int X = user->position->x;
+	mvaddch(Y,X,level->tile[Y][X]);
 	user->position->y = newPosition->y;
 	user->position->x = newPosition->x;
-	mvprintw(user->position->y, user->position->x,"@");
 
-	move(user->position->y, user->position->x);
+	level->visited[newPosition->y][newPosition->x] = 1;
+	drawPlayer(user);
 }
 void drawPlayer(Player * player) {
 	mvprintw(player->position->y, player->position->x, "@");
 	move(player->position->y, player->position->x);
 }
+int **initializeVisitedArray(){
+	int **visited = malloc(sizeof(int *) * 40);
+	for(int y = 0 ; y < 40; y++){
+		visited[y] = malloc(sizeof(int) * 100);
+		for(int x = 0 ; x < 100 ; x++){
+			visited[y][x] = 0;
+		}
+	}
+	return visited;
+}
 Level * createLevel(int level) {
+	clear();
 	Level * newLevel;
 	newLevel = malloc(sizeof(Level));
-
 	newLevel->level = level;
 	newLevel->numberOfRooms = 6;
-	newLevel->rooms = room_set();
-	newLevel->tile = global_tile;
+	newLevel->rooms = room_set(newLevel);
+	connectDoors(newLevel);
+    newLevel->tile = saveLevelPositions();
+	newLevel->visited = initializeVisitedArray();
 	newLevel->user = playerSetUp();
 	placePlayer(newLevel->rooms, newLevel->user);
+	drawPlayer(newLevel->user);
+	addMonsters(newLevel);
 
-    newLevel->rooms[0]->visible = 1;
-	
-	Connect_doors(level->rooms[1]->doors[2],level->rooms[0]->doors[3]);
-    Connect_doors(level->rooms[2]->doors[2],level->rooms[1]->doors[3]);
-    Connect_doors(level->rooms[3]->doors[0],level->rooms[2]->doors[1]);
-    Connect_doors(level->rooms[4]->doors[3],level->rooms[3]->doors[2]);
-    Connect_doors(level->rooms[5]->doors[3],level->rooms[4]->doors[2]);
+	Room *firstroom = newLevel->rooms[0];
+	for(int y = firstroom->position.y; y < firstroom->position.y + firstroom->height;y++){
+		for(int x = firstroom->position.x; x < firstroom->position.x + firstroom->width; x++){
+			newLevel->visited[y][x] = 1;
+		}
+	}
+
+	newLevel->rooms[5]->stairs = malloc(sizeof(Position));
+	int Y = newLevel->rooms[5]->stairs->y = rand() % (newLevel->rooms[5]->height - 2) + newLevel->rooms[5]->position.y + 1;
+	int X = newLevel->rooms[5]->stairs->x = rand() % (newLevel->rooms[5]->width - 2) + newLevel->rooms[5]->position.x + 1;
+	newLevel->tile[Y][X] = '>';
+	mvprintw(Y,X,">");
+
+	int food_place = rand() % 6;
+	Room * food_room = newLevel->rooms[food_place];
+	int x = rand() % (food_room->width - 2) + food_room->position.x + 1;
+	int y = rand() % (food_room->height - 2) + food_room->position.y + 1;
+
+	newLevel->tile[y][x] = 'f';
+
 
 	drawLevel(newLevel);
-
-    char input = getch();
-    if(input == 'q'){
-        drawLevel_completly(newLevel);
-        return newLevel;
-    }
+	refresh();
     
 	return newLevel;
 }
 
 void drawLevel(Level * level){
-	clear();
 	int x, y, i;
-	 for (y = 0; y < 40; y++){
+	for (y = 0; y < 40; y++){
 	 	for (x = 0; x < 100; x++){
-	 		mvaddch(y,x,' ');
+			if(level->visited[y][x]){
+	 		   mvaddch(y,x,level->tile[y][x]);
+			}else{
+				mvaddch(y,x,' ');
+			}
 	 	}
-	 }
-    print_room(level->rooms[0]);
-    for(i = 1; i < 6;i++){
-        if(level->rooms[i]->visible){
-            print_room(level->rooms[i]);
-        }
-    }
+	}
+	for(i = 0 ; i < level->numberOfMonsters;i++){
+		drawMonster(level->monsters[i]);
+	}
+	printGameHub(level);
 	drawPlayer(level->user);
-	refresh();
-     
 }
-void drawLevel_completly(Level * level){
-	int x, y, i;
-	 for (y = 0; y < 40; y++){
-	 	for (x = 0; x < 100; x++){
-	 		mvaddch(y,x,' ');
-	 	}
-	 }
-    for(i = 0; i < 6;i++){
-        print_room(level->rooms[i]);
-    }
-	drawPlayer(level->user);
-     Connect_doors(level->rooms[1]->doors[2],level->rooms[0]->doors[3]);
-      Connect_doors(level->rooms[2]->doors[2],level->rooms[1]->doors[3]);
-      Connect_doors(level->rooms[3]->doors[0],level->rooms[2]->doors[1]);
-      Connect_doors(level->rooms[4]->doors[3],level->rooms[3]->doors[2]);
-      Connect_doors(level->rooms[5]->doors[3],level->rooms[4]->doors[2]);
-}
+Room ** room_set(Level *level) {
+	int x;
+	Room ** rooms;
+	rooms = malloc(sizeof(Room)*6);
 
+	for (x = 0; x < 6; x++) {
+		rooms[x] = createRoom(x, 4);
+		print_room(rooms[x]);
+	}
+	return rooms;
+}
+char **saveLevelPositions(){
+	int x, y;
+	char **positions;
+	positions = malloc(sizeof(char *) * 40);
+	for(y = 0 ; y < 40;y++){
+		positions[y] = malloc(sizeof(char) * 100);
+		for(x = 0 ; x < 100; x++){
+			positions[y][x] = mvinch(y,x);
+		}
+	}
+	return positions;
+}
+void revealRoom(Level *level, Room *room){
+	for(int y = room->position.y ;y < room->position.y + room->height; y++){
+		for(int x = room->position.x ; x < room->position.x + room->width; x++){
+			level->visited[y][x] = 1;
+		}
+	}
+}
 void check_next_step(Position * newPosition, Level * level) {
 	Player * user;
 	user = level->user;
@@ -537,56 +532,89 @@ void check_next_step(Position * newPosition, Level * level) {
 	case '.':
 	case '#':
 	case '+':
-		playerMove(newPosition, user, global_tile);
+		playerMove(newPosition, user,level);
 		break;
-    case 'G':
+    case 'g':
         user->gold++;
         printGameHub(level);
         break;
+	case 'f':
+		playerMove(newPosition, user,level);
+		level->tile[newPosition->y][newPosition->x] = '.';
+		if(user->health < 20){
+	        user->health++;
+		}
+		printGameHub(level);
+		break;
+	case '>':
+	    playerMove(newPosition, user,level);
+	    int current_level = level->level;
+		int new_level = current_level + 1;
+
+		Level * newLevel = malloc(sizeof(Level));
+		newLevel = createLevel(new_level);
+		//drawLevel(newLevel);
+		break;
+	case '=':
+	    playerMove(newPosition, user,level);
+	    for(int i = 0 ; i < 6; i++){
+	       if((newPosition->x >= level->rooms[i]->position.x )&& (newPosition->x < level->rooms[i]->position.x + level->rooms[i]->width)){
+			   revealRoom(level,level->rooms[i]);
+		   }
+		}
+		drawLevel(level);
+	    break;
 	default:
 		break;
 	}
-	if(global_tile[newPosition->y][newPosition->x] == '+' || global_tile[newPosition->y][newPosition->x] == '#'){
-		draw_circle(newPosition->y,newPosition->x, 5);
+	if(level->tile[newPosition->y][newPosition->x] == '#' || level->tile[newPosition->y][newPosition->x] == '+'){
+		if(level->tile[newPosition->y][newPosition->x + 1] == '#'){
+			level->visited[newPosition->y][newPosition->x + 1] = 1;
+		}
+		if(level->tile[newPosition->y][newPosition->x - 1] == '#'){
+			level->visited[newPosition->y][newPosition->x - 1] = 1;
+		}
+		if(level->tile[newPosition->y][newPosition->x + 2] == '#'){
+			level->visited[newPosition->y][newPosition->x + 2] = 1;
+		}
+		if(level->tile[newPosition->y][newPosition->x - 2] == '#'){
+			level->visited[newPosition->y][newPosition->x - 2] = 1;
+		}
+		if(level->tile[newPosition->y + 1][newPosition->x] == '#'){
+			level->visited[newPosition->y + 1][newPosition->x] = 1;
+		}
+		if(level->tile[newPosition->y - 1][newPosition->x] == '#'){
+			level->visited[newPosition->y -1][newPosition->x] = 1;
+		}
+		if(level->tile[newPosition->y + 2][newPosition->x] == '#'){
+			level->visited[newPosition->y + 2][newPosition->x] = 1;
+		}
+		if(level->tile[newPosition->y - 2][newPosition->x] == '#'){
+			level->visited[newPosition->y -2][newPosition->x] = 1;
+		}
+		drawLevel(level);
 	}
-    for(int i = 1 ; i < 6;i++){
-        for(int j = 0; j < 4;j++){
-            Door *door = level->rooms[i]->doors[j];
-            if(newPosition->y == door->position.y && newPosition->x == door->position.x){
-                int connect = i % 6;
-                level->rooms[connect]->visible = 1;
-                drawLevel(level);
-                return;
-            }
-        }
-    }
-}
-void printGameHub(Level * level){
-
-	mvprintw(31,0,"______________________________________________________________");
-	mvprintw(33,0,"______________________________________________________________");
-	mvprintw(32, 0, " Level: %d", level->level);
-	printw(" Gold: %d", level->user->gold);
-	printw(" Hp: %d(%d)", level->user->health, level->user->maxHealth);
-	printw(" Attack: %d", level->user->attack);
-	printw(" Exp: %d", level->user->exp);
-	printw(" ");
-}
-
-void draw_circle(int playerX, int playerY, int radius){
-	for(int y = playerY - radius; y <= playerY + radius ; y++){
-		for(int x = playerX - radius; x <= playerX + radius; x++){
-			if((x >= 0 && y >= 0) && (x < 100 && y < 40)){
-				int dx = x - playerX;
-				int dy = y - playerY;
-				if(sqrt(dx * dx + dy * dy) <= radius){
-					if(global_tile[y][x] == '#' || global_tile[y][x] == '+'){
-						mvprintw(y,x,"#");
-					}
-				}
-			}
+	for(int i = 0 ; i < 6; i++){
+		Room *room = level->rooms[i];
+		if(newPosition->x >= room->position.x && newPosition->x < room->position.x + room->width && newPosition->y >= room->position.y && newPosition->y < room->position.y + room->height){
+			revealRoom(level,room);
+			drawLevel(level);
+			break;
 		}
 	}
+}
+void printGameHub(Level * level){
+	mvprintw(37,0,"____________________________________________________________________");
+	mvprintw(33,0,"____________________________________________________________________");
+	mvprintw(34,0, "Level: %d   ", level->level);
+	printw(" Gold: %d   ", level->user->gold);
+	printw(" Health: %d(%d)   ", level->user->health, level->user->maxHealth);
+	printw(" Attack: %d   ", level->user->attack);
+	printw(" Exp: %d   ", level->user->exp);
+	printw(" ");
+	//const wchar_c monster[] = L'\u2694';
+	mvprintw(35,0,"%s", "press Enter to quit the game.");
+	mvprintw(36,0,"%s", "press 'q' to see all the map.");
 }
 
 
