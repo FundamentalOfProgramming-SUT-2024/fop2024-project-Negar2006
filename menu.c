@@ -5,94 +5,152 @@
 #include <ctype.h>
 #include <time.h>
 #include "map.c"
-
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
+#include <locale.h>
+#include <wchar.h>
 
 #define FILENAME "users.txt"
 #define SCOREFILE "scores.txt"
-extern char **global_tile;
 
 typedef struct {
     char username[50];
     char password[50];
     char email[100];
+    int score;
+    int rank;
 } User;
+
 
 int user_exists(const char *username);
 int is_valid_password(const char *password);
 int is_valid_email(const char *email);
 void save_user(const User *user);
 void generate_random_password(char *password, int length);
+void setting_menu();
+void hardness();
+void show_song_playlist();
+void play_song(const char *filename);
+void stop_music();
 
-
-void save_score(const char *username, int score) {
-    FILE *file = fopen("scores.txt", "a+");
-    if (!file) {
-        mvprintw(5, 10, "Error opening scores file!");
-        getch();
-        return;
-    }
-
-    char line[100];
-    int found = 0;
-    FILE *temp = fopen("score.txt", "w");
-    while (fgets(line, sizeof(line), file)) {
-        char saved_user[50];
-        int saved_score;
-        sscanf(line, "%s %d", saved_user, &saved_score);
-
-        if (strcmp(saved_user, username) == 0) {
-            fprintf(temp, "%s %d\n", username, score);
-            found = 1;
-        } else {
-            fprintf(temp, "%s %d\n", saved_user, saved_score);
-        }
-    }
-
-    if (!found) {
-        fprintf(temp, "%s %d\n", username, score); 
-    }
-
-    fclose(file);
-    fclose(temp);
-
-    remove("scores.txt");
-    rename("temp.txt", "scores.txt");
-}
-void show_scores() {
-    FILE *file = fopen("scores.txt", "r");
-    if (!file) {
-        mvprintw(5, 10, "No scores found!");
-        getch();
-        return;
-    }
+void setting_menu(){
+     int choice;
 
     clear();
-    mvprintw(1, 10, "==================================");
-    mvprintw(2, 10, " Players' Scores ");
-    mvprintw(3, 10, "==================================");
+    mvprintw(4,10,"===============================");
+    mvprintw(5,10,"Setting board");
+    mvprintw(6,10,"===============================");
+    mvprintw(9,10,"1. Game difficulty level");
+    mvprintw(10,10,"2. Color of Player");
+    mvprintw(11,10,"3. Back to main menu");
 
-    char username[50];
-    int score;
-    int y = 5;
-
-    mvprintw(y++, 10, "Username Score");
-    mvprintw(y++, 10, "--------------------------");
-
-    while (fscanf(file, "%s %d", username, &score) != EOF) {
-        mvprintw(y++, 10, "%-16s %d", username, score);
+    echo();
+    scanw("%d", &choice);
+    noecho();
+    switch (choice)
+    {
+    case 1:
+    hardness();
+        break;
+    case 2:
+        break;
+    case 3:
+        return;
+    default:
+        mvprintw(17, 10, "Invalid option! Try again.");
+        getch();
+        break;
     }
 
-    fclose(file);
 
-    mvprintw(y + 1, 10, "Press any key to return...");
-    getch();
+
 }
+void hardness(){
+    int choice;
+
+    clear();
+    mvprintw(4,10,"===============================");
+    mvprintw(5,10,"Game difficulty level");
+    mvprintw(6,10,"===============================");
+    mvprintw(8,10,"1. HARD");
+    mvprintw(9,10,"2. MEDIUM");
+    mvprintw(10,10,"3. EASY");
+
+    echo();
+    scanw("%d", &choice);
+    noecho();
+    switch (choice)
+    {
+    case 1:
+        break;
+    case 2:
+        return ;
+    default:
+        mvprintw(17, 10, "Invalid option! Try again.");
+        getch();
+        break;
+    }
+
+}
+// void show_users() {
+//     FILE *file = fopen(FILENAME, "r");
+//     if (!file) {
+//         mvprintw(5, 10, "User file not found!");
+//         getch();
+//         return;
+//     }
+
+//     clear();
+//     attron(COLOR_PAIR(2));
+//     mvprintw(1, 10, "==================================");
+//     mvprintw(2, 10, " Registered Users List ");
+//     mvprintw(3, 10, "==================================");
+//     attroff(COLOR_PAIR(2));
+
+//     User user;
+//     int y = 5;
+
+//     mvprintw(y++, 10, "Username           Password           Email           score           rank");
+//     mvprintw(y++, 10, "--------------------------------------------------------------------------");
+
+//     while (fread(&user, sizeof(User), 1, file)) {
+//         mvprintw(y++, 10, "%-16s %-16s %-16s %-16d %-16d", user.username, user.password, user.email, user.score, user.rank);
+//     }
+
+//     fclose(file);
+
+//     mvprintw(y + 1, 10, "Press any key to return to the main menu...");
+//     getch();
+// }
 void show_users() {
+    setlocale(LC_ALL, "");
     FILE *file = fopen(FILENAME, "r");
     if (!file) {
         mvprintw(5, 10, "User file not found!");
         getch();
         return;
+    }
+
+    User users[100];
+    int count = 0;
+
+    while (fread(&users[count], sizeof(User), 1, file) && count < 100) {
+        count++;
+    }
+    fclose(file);
+
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = i + 1; j < count; j++) {
+            if (users[i].score < users[j].score) {
+                User temp = users[i];
+                users[i] = users[j];
+                users[j] = temp;
+            }
+        }
+    }
+
+    for (int i = 0; i < count; i++) {
+        users[i].rank = i + 1; 
     }
 
     clear();
@@ -102,39 +160,120 @@ void show_users() {
     mvprintw(3, 10, "==================================");
     attroff(COLOR_PAIR(2));
 
-    User user;
     int y = 5;
+    mvprintw(y++, 10, "Username           Password           Email           Score           Rank  ");
+    mvprintw(y++, 10, "----------------------------------------------------------------------------");
 
-    mvprintw(y++, 10, "Username           Password           Email");
-    mvprintw(y++, 10, "-----------------------------------------------");
+    for (int i = 0; i < count; i++) {
+        const char *medal = "";
+        
+        if (i == 0){
+            const wchar_t symbol[] = L"\U0001F947";
+            mvaddnwstr(++y, 7, symbol,-1);
+        } 
+        else if (i == 1){
+            const wchar_t symbol[] = L"\U0001F948";
+            mvaddnwstr(++y, 7, symbol,-1);
+        } 
+        else if (i == 2){
+            const wchar_t symbol[] = L"\U0001F949";
+            mvaddnwstr(++y, 7, symbol,-1);
+        } 
 
-    while (fread(&user, sizeof(User), 1, file)) {
-        mvprintw(y++, 10, "%-16s %-16s %s", user.username, user.password, user.email);
+        mvprintw(y++, 10, "%-16s %-16s %-16s %-16d %-16d", 
+                 users[i].username, 
+                 users[i].password, 
+                 users[i].email, 
+                 users[i].score, 
+                 users[i].rank);
     }
-
-    fclose(file);
 
     mvprintw(y + 1, 10, "Press any key to return to the main menu...");
     getch();
 }
-int gameLoop()
-{
+
+void Profile(const char * username){
+   FILE *file = fopen(FILENAME,"r");
+   User user;
+   int found = 0;
+   while(fread(&user,sizeof(User),1,file)){
+    if(strcmp(user.username,username) == 0){
+        found = 1;
+        break;
+    }
+   }
+   fclose(file);
+   clear();
+   mvprintw(5,10,"=====================================================");
+   mvprintw(6,10,"            User Profile");
+   mvprintw(7,10,"======================================================");
+   mvprintw(10,10,"Username: %s",user.username);
+   mvprintw(11,10,"Password: %s",user.password);
+   mvprintw(12,10,"Email: %s",user.email);
+   mvprintw(13,10,"Score: %d", user.score);
+   mvprintw(14,10,"Rank: %d",user.rank);
+
+   mvprintw(17,10,"Press 'q' to return to pre_game_menu: ");
+   char ch;
+   do{
+    ch = getch();
+   }while(ch != 'q');
+}
+int gameLoop(){
+    lleevveell = malloc(sizeof(Level *) * 4);
+    for(int i = 0 ; i < 4; i++){
+        lleevveell[i] = createLevel(i + 1);
+    }
+    
+    time_t last_hunger_update = time(NULL);
+    time_t last_health_decrease = time(NULL);
+	time_t last_health_update = time(NULL);
+
+	Level * level;
+	level = createLevel(1);
     int ch;
     Position * newPosition;
-    Level * level;
-
-    level = createLevel(1);
+	drawLevel(level);
     printGameHub(level);
-    while ((ch = getch()) != '\n')
-    {
+    while ((ch = getch()) != '\n'){
         printGameHub(level);
         newPosition = handleInput(ch, level->user,level);
         check_next_step(newPosition, level);
         move(level->user->position->y,level->user->position->x);
+        
         if (level->user->health <= 0)
         {
+            clear();
+            mvprintw(14,14,"END THE GAME...");
             return -1;
         }
+
+        time_t current_time = time(NULL);
+        if (difftime(current_time, last_hunger_update) >= 10) {
+        level->user->hunger += 10;
+        if (level->user->hunger >= 100) {
+            level->user->health -= 10;
+            level->user->hunger = 0; 
+        }
+        last_hunger_update = current_time;
+
+		if (difftime(current_time, last_health_update) >= 20) {
+        level->user->health += 5;
+        }
+        last_health_update = current_time;
+
+        if (difftime(current_time, last_health_decrease) >= 5) {
+        for (int i = 0; i < level->numberOfMonsters; i++) {
+            Monster *monster = level->monsters[i];
+            int distance = abs(level->user->position->x - monster->position->x) + abs(level->user->position->y - monster->position->y);
+            if (distance <= 2 && monster->alive) { 
+                level->user->health -= 5; 
+                break;
+            }
+        }
+        last_health_decrease = current_time;
+    }
+    }
     }
 }
 void pre_game_menu(const char *username) {
@@ -151,7 +290,7 @@ void pre_game_menu(const char *username) {
         mvprintw(9, 10, "Welcome, %s!", username);
         mvprintw(11, 10,"1. Start New Game");
         mvprintw(12, 10,"2. Continue Previous Game");
-        mvprintw(13, 10,"3. Profile: ");
+        mvprintw(13, 10,"3. Profile: (Do not selected this button if you are logged in as a guest)");
         mvprintw(14, 10,"4. Setting");
         mvprintw(15, 10,"5. Score Board: ");
         mvprintw(16, 10,"6. Back to Main Menu");
@@ -164,27 +303,30 @@ void pre_game_menu(const char *username) {
         switch (choice) {
             case 1:
                 clear();
-                
                 gameLoop();
-                mvprintw(12,10,"G");
+                refresh();
                 break;
             case 2:
                 clear();
                 mvprintw(0, 0, "Continuing the previous game...");
-                gameLoop();
+                //gameLoop();
                 getch();
                 break;
             case 3:
+                Profile(username);
                 break;
             case 4:
+                setting_menu();
                 break;
             case 5:
+                show_users();
                 break;
             case 6:
                 return ;
             default:
                 mvprintw(17, 10, "Invalid option! Try again.");
                 getch();
+                break;
         }
     }
 }
@@ -275,7 +417,6 @@ void reset_password() {
     }
 
     if (found) {
-        // Validate new password
         do {
             mvprintw(7, 10, "Enter new password (at least 7 characters): ");
             echo();
@@ -291,7 +432,6 @@ void reset_password() {
             }
         } while (strlen(new_password) < 7);
 
-        // Update the password
         strcpy(user.password, new_password);
 
         pos = ftell(file) - sizeof(User);
@@ -436,9 +576,10 @@ void main_menu() {
                 show_users();
                 break;
             case 5:
-                //show_song_playlist();
+                show_song_playlist();
                 break;
             case 6:
+                stop_music();
                 endwin();
                 exit(0);
                 break;
@@ -494,3 +635,60 @@ void generate_random_password(char *password, int length) {
     }
     password[length] = '\0';
 }
+#include <SDL2/SDL_mixer.h>
+
+void show_song_playlist(){
+    clear();
+    attron(COLOR_PAIR(1));
+    mvprintw(5, 10, "==================================");
+    mvprintw(6, 10, "         Song Playlist          ");
+    mvprintw(7, 10, "==================================");
+    attroff(COLOR_PAIR(1));
+
+    mvprintw(9, 10, "1. music1.mp3");
+    mvprintw(10, 10, "2. music2.mp3");
+    mvprintw(11, 10, "3. Back to Menu");
+    mvprintw(12, 10, "Select a song: ");
+
+    int choice;
+    echo();
+    scanw("%d", &choice);
+    noecho();
+
+    switch (choice) {
+        case 1:
+            play_song("music1.mp3");
+            //return;
+            break;
+        case 2:
+            play_song("music2.mp3");
+            break;
+        case 3:
+            break;
+        default:
+            attron(COLOR_PAIR(3));
+            mvprintw(13, 10, "Invalid option. Press any key to try again...");
+            attroff(COLOR_PAIR(3));
+            getch();
+    }
+}
+void play_song(const char *filename) {
+    // Initialize SDL_mixer if not already done
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+        printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
+        return;
+    }
+    Mix_Music *music = Mix_LoadMUS(filename);
+    if (!music) {
+        printf("Failed to load music: %s\n", Mix_GetError());
+        Mix_CloseAudio();
+        return;
+    }
+
+    Mix_PlayMusic(music, -1); // Play in loop
+}
+void stop_music(){
+    Mix_HaltMusic();
+    Mix_CloseAudio();
+}
+
