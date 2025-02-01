@@ -29,11 +29,13 @@ void updateHunger(Player *player);
 void drawHungerBar(Player *player);
 PlayerInventory *createInventory();
 void displayWeaponMenu(PlayerInventory *inventory, Player * player);
+void printSpellRoom(Level * level) ;
+void displaySpellMenu(Player * player);
 
 void placeFood(Level *level) {
     int food_count = 4; 
     for (int i = 0; i < food_count; i++) {
-        Room *room = level->rooms[rand() % level->numberOfRooms];
+        Room *room = level->rooms[rand() % 6];
         int x = rand() % (room->width - 2) + room->position.x + 1;
         int y = rand() % (room->height - 2) + room->position.y + 1;
         
@@ -181,6 +183,22 @@ void displayWeaponMenu(PlayerInventory *inventory, Player * player){
 
     mvprintw(17, 1, "Press ENTER to return.");
 }
+void displaySpellMenu( Player * player){
+    clear(); 
+    
+    clear();
+    attron(COLOR_PAIR(1));
+
+    mvprintw(4, 4, "=== Spell Menu ===");
+    mvprintw(5, 4, "Select a Spell:");
+
+    attroff(COLOR_PAIR(1));
+    mvprintw(7, 4, "1. HEALTH spell =  %d", player->HEALTH);
+    mvprintw(8, 4, "2. SPEED spell = %d",player->SPEED);
+    mvprintw(9, 4, "3. DAMAGE spell = %d",player->DAMAGE);
+    refresh();
+}
+
 void Kill_monster(Level * level){
     if(strcmp(level->user->main_weapon, "Mase") == 0){   
         for(int i = 0 ; i < level->numberOfMonsters;i++){
@@ -663,5 +681,28 @@ void Kill_monster(Level * level){
     }
 
 }
+
+void printSpellRoom(Level * level) {
+    attron(COLOR_PAIR(2)); 
+
+    for (int x = level->rooms[6]->position.x; x < level->rooms[6]->position.x + level->rooms[6]->width; x++) {
+        mvprintw(level->rooms[6]->position.y, x, "_"); 
+        mvprintw(level->rooms[6]->position.y + level->rooms[6]->height - 1, x, "_"); 
+    }
+    
+    for (int y = level->rooms[6]->position.y + 1; y < level->rooms[6]->position.y + level->rooms[6]->height - 1; y++) {
+        mvprintw(y, level->rooms[6]->position.x, "|"); 
+        mvprintw(y, level->rooms[6]->position.x + level->rooms[6]->width - 1, "|"); 
+
+        for (int x = level->rooms[6]->position.x + 1; x < level->rooms[6]->position.x + level->rooms[6]->width - 1; x++) {
+            mvprintw(y, x, "."); 
+        }
+    }
+    mvprintw(level->rooms[6]->cols[0]->y, level->rooms[6]->cols[0]->x, "O"); 
+    mvprintw(level->rooms[6]->cols[1]->y, level->rooms[6]->cols[1]->x, "O"); 
+
+    attroff(COLOR_PAIR(2));
+}
+
 
 

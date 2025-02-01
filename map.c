@@ -13,8 +13,7 @@ Level ** lleevveell;
 
 void printGameHub(Level * level);
 Room * createRoom(int grid, int numberOfDoors);
-void print_room(Room * room, Level * level);
-void print_room6(Room * room);
+void print_room(int grid,Room * room, Level * level);
 void placePlayer(Room ** rooms, Player * user);
 void addPositionYX(int ** frontier, int frontierCount, int y, int x);
 int checkPosition(int y, int x);
@@ -70,10 +69,10 @@ Room * createRoom(int grid, int numberOfDoors)
 		newRoom->position.x = 0;
 		newRoom->position.y = 18;
 		break;
-	// case 6:
-	//     newRoom->position.x = 90;
-	// 	newRoom->position.y = 0;
-	// 	break;
+	case 6:
+	    newRoom->position.x = 70;
+		newRoom->position.y = 8;
+		break;
 	default:
 	    break;
 	}
@@ -118,11 +117,12 @@ Room * createRoom(int grid, int numberOfDoors)
 	newRoom->doors[1]->position.y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
 	newRoom->doors[1]->position.x = newRoom->position.x + newRoom->width - 1;
 	}else{
-	newRoom->height = rand() % 6 + 6;
-	newRoom->width = rand() % 14 + 6;
+	
+	newRoom->height =  8;
+	newRoom->width =  14;
 
-	newRoom->position.x += rand() % (30 - newRoom->width) + 1;
-	newRoom->position.y += rand() % (14 - newRoom->height) + 1;
+	newRoom->position.x +=  70 ;
+	newRoom->position.y +=  8 ;
 
 	newRoom->cols = malloc(sizeof(Position *) * 2);
 	for (int i = 0; i < 2; i++){
@@ -133,12 +133,17 @@ Room * createRoom(int grid, int numberOfDoors)
 
 	newRoom->cols[1]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
 	newRoom->cols[1]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+	newRoom->doors = NULL;
+	newRoom->window = NULL;
+	
 	}
 	return newRoom;
 }
-void print_room(Room * room, Level * level){
-	
-		int x,y;
+void print_room(int grid, Room * room, Level * level){
+	if(grid == 6){
+		attron(COLOR_PAIR(2));
+	}
+	int x,y;
 	for (x = room->position.x; x < room->position.x + room->width; x++) {
 		mvprintw(room->position.y, x, "_");
 		mvprintw(room->position.y + room->height - 1, x, "_");
@@ -157,36 +162,16 @@ void print_room(Room * room, Level * level){
 	mvprintw(room->cols[0]->y,room->cols[0]->x,"O");
 	mvprintw(room->cols[1]->y,room->cols[1]->x,"O");
 
+	if(room->window != NULL){
 	mvprintw(room->window[0]->y, room->window[0]->x, "=");
     mvprintw(room->window[1]->y, room->window[1]->x, "=");
-
+	}
+	if(room->doors != NULL){
 	mvprintw(room->doors[0]->position.y, room->doors[0]->position.x, "+");
 	mvprintw(room->doors[1]->position.y, room->doors[1]->position.x, "+");
+	}
 
 }
-// void print_room6(Room * room){
-// 	int x,y;
-// 	attron(COLOR_PAIR(2));
-// 	for (x = room->position.x; x < room->position.x + room->width; x++) {
-// 		mvprintw(room->position.y, x, "_");
-// 		mvprintw(room->position.y + room->height - 1, x, "_");
-
-// 	}
-// 	for (y = room->position.y + 1; y < room->position.y + room->height - 1; y++)
-// 	{
-// 		mvprintw(y, room->position.x, "|");
-// 		mvprintw(y, room->position.x + room->width - 1, "|");
-
-// 		for (x = room->position.x + 1; x <room->position.x + room->width - 1; x++)
-// 		{
-// 			mvprintw(y, x, ".");
-// 		}
-// 	}
-// 	mvprintw(room->cols[0]->y,room->cols[0]->x,"O");
-// 	mvprintw(room->cols[1]->y,room->cols[1]->x,"O");
-// 	attroff(COLOR_PAIR(2));
-
-// }
 void placePlayer(Room ** rooms, Player * user) {
 	user->position->x = rooms[0]->position.x + 1;
 	user->position->y = rooms[0]->position.y + 1;
@@ -212,7 +197,7 @@ int addNeighbors(int ** frontier, int frontierCount, int *** cameFrom, int y, in
 		cameFrom[y - 1][x][1] = x;
 	}
 
-	if (y < (29) && cameFrom[y + 1][x][0] < 0 && checkPosition(y + 1, x))
+	if (y < (39) && cameFrom[y + 1][x][0] < 0 && checkPosition(y + 1, x))
 	{
 		addPositionYX(frontier, frontierCount, y + 1, x);
 		frontierCount++;
@@ -220,7 +205,7 @@ int addNeighbors(int ** frontier, int frontierCount, int *** cameFrom, int y, in
 		cameFrom[y + 1][x][1] = x;
 	}
 
-	if (x < (99) && cameFrom[y][x + 1][0] < 0 && checkPosition(y, x + 1))
+	if (x < (179) && cameFrom[y][x + 1][0] < 0 && checkPosition(y, x + 1))
 	{
 		addPositionYX(frontier, frontierCount, y, x + 1);
 		frontierCount++;
@@ -243,20 +228,20 @@ void pathFind(Position * start, Position * end) {
 	int i, j;
 	int x, y;
 	int tempY;
-	int ** frontier = malloc(sizeof(int*) * 4000);
+	int ** frontier = malloc(sizeof(int*) * 7200);
 	int *** cameFrom = malloc(sizeof(int**) * 40 );
 
 	int frontierIndex = 0;
 	int frontierCount = 0;
 
-	for (i = 0; i < 4000; i++)
+	for (i = 0; i < 7200; i++)
 	{
 		frontier[i] = malloc(sizeof(int)*2);
 	}
 
 	for (i = 0; i < 40; i++){
-		cameFrom[i] = malloc(sizeof(int*)* 100);
-		for (j = 0; j < 100; j++){
+		cameFrom[i] = malloc(sizeof(int*)* 180);
+		for (j = 0; j < 180; j++){
 			cameFrom[i][j] = malloc(sizeof(int)*2);
 			cameFrom[i][j][0] = -1;
 			cameFrom[i][j][1] = -1;
@@ -346,6 +331,9 @@ Player * playerSetUp() {
 	newPlayer->Mase = 1;
 	newPlayer->Magic_wand = 0;
 	newPlayer->Normal_arrow = 0;
+	newPlayer->DAMAGE = 0;
+	newPlayer->HEALTH = 0;
+	newPlayer->SPEED = 0;
 	newPlayer->main_weapon = malloc(sizeof(char));
 	newPlayer->main_weapon = "Mase";
 
@@ -463,9 +451,41 @@ Position * handleInput(int input, Player * user, Level *level){
 	case 'n':
 	    visited_tiles(level);
 	 	break;
+    case 'B':
+	displaySpellMenu(user);
+	int chouice = getch() - '0';
+	switch (chouice) {
+        case 1:
+            if (user->normal_food > 0) {
+                user->normal_food--;
+                user->health = 100;
+            }
+            break;
+        case 2:
+            if (user->excellent_food > 0) {
+                user->excellent_food--;
+                user->hunger -= excellent_food.hunger_reduction;
+            }
+            break;
+        case 3:
+            if (user->spoiled_food > 0) {
+                user->spoiled_food--;
+                user->hunger -= spoiled_food.hunger_reduction;
+            }
+            break;
+        default:
+            break;
+
+	clear();
+    drawLevel(level);
+    drawPlayer(user);
+    mvprintw(0, 0, "Hunger: %d, Health: %d", user->hunger, user->health);
+    refresh();
+	break;
+    }
 	case 'E':
     displayFoodMenu(user);
-    int choice = getch() - '0'; 
+	int choice = getch() - '0';
     switch (choice) {
         case 1:
             if (user->normal_food > 0) {
@@ -598,7 +618,7 @@ Position * handleInput(int input, Player * user, Level *level){
 }
 void visited_tiles(Level * level){
 	for(int y = 0 ; y < 40; y++){
-		for(int x = 0; x < 100; x++){
+		for(int x = 0; x < 180; x++){
 			level->visited[y][x] = 1;
 		}
 	}
@@ -626,8 +646,8 @@ void drawPlayer(Player * player) {
 int **initializeVisitedArray(){
 	int **visited = malloc(sizeof(int *) * 40);
 	for(int y = 0 ; y < 40; y++){
-		visited[y] = malloc(sizeof(int) * 100);
-		for(int x = 0 ; x < 100 ; x++){
+		visited[y] = malloc(sizeof(int) * 180);
+		for(int x = 0 ; x < 180 ; x++){
 			visited[y][x] = 0;
 		}
 	}
@@ -638,7 +658,7 @@ Level * createLevel(int level) {
 	Level * newLevel;
 	newLevel = malloc(sizeof(Level));
 	newLevel->level = level;
-	newLevel->numberOfRooms = 6;
+	newLevel->numberOfRooms = 7;
 	newLevel->rooms = room_set(newLevel);
 	connectDoors(newLevel);
     newLevel->tile = saveLevelPositions();
@@ -699,6 +719,21 @@ Level * createLevel(int level) {
 			newLevel->tile[y][x] = 'g';
 		}
     }
+	int itemCount3 = 7;
+    for (int i = 0; i < itemCount3; i++) {
+        Room *room = newLevel->rooms[6];
+        int x = rand() % (room->width - 2) + room->position.x + 1;
+        int y = rand() % (room->height - 2) + room->position.y + 1;
+
+        int itemType = rand() % 3; 
+        if (itemType == 0) {
+            newLevel->tile[y][x] = 'h'; 
+        } else if(itemType == 1){
+            newLevel->tile[y][x] = 'p'; 
+        }else {
+			newLevel->tile[y][x] = 'g';
+		}
+    }
 	refresh();
     
 	return newLevel;
@@ -707,8 +742,14 @@ void drawLevel(Level * level){
 	setlocale(LC_ALL, "");
 	int x, y, i;
 	for (y = 0; y < 40; y++){
-	 	for (x = 0; x < 100; x++){
+	 	for (x = 0; x < 180; x++){
 			if(level->visited[y][x]){
+				if(x >= 100){
+				attron(COLOR_PAIR(2));
+				mvaddch(y, x, level->tile[y][x]);
+				attroff(COLOR_PAIR(2));
+			}
+			else{
 	 		   switch(level->tile[y][x]) {
                     
 					case 'd':
@@ -748,6 +789,7 @@ void drawLevel(Level * level){
                     default:
                         mvaddch(y, x, level->tile[y][x]);
                 }
+			}
 			}else{
 				mvaddch(y,x,' ');
 			}
@@ -763,15 +805,18 @@ Room ** room_set(Level *level) {
 	int x;
 	Room ** rooms;
 	rooms = malloc(sizeof(Room)*7);
-
-	for (x = 0; x < 6; x++) {
+	
+	for (x = 0; x < 7; x++) {
+		if(x == 6){
+			attron(COLOR_PAIR(2));
+			rooms[6] = createRoom(6, 0);
+		    print_room(6,rooms[6], level);
+			attroff(COLOR_PAIR(2));
+		}else{
 		rooms[x] = createRoom(x, 4);
-		print_room(rooms[x], level);
+		print_room(x,rooms[x], level);}
 	}
-	// if(x == 6){
-	// 	rooms[6] = createRoom(6,0);
-	// 	print_room6(rooms[6]);
-	// }
+	
 	return rooms;
 }
 char **saveLevelPositions(){
@@ -779,8 +824,8 @@ char **saveLevelPositions(){
 	char **positions;
 	positions = malloc(sizeof(char *) * 40);
 	for(y = 0 ; y < 40;y++){
-		positions[y] = malloc(sizeof(char) * 100);
-		for(x = 0 ; x < 100; x++){
+		positions[y] = malloc(sizeof(char) * 180);
+		for(x = 0 ; x < 180; x++){
 			positions[y][x] = mvinch(y,x);
 		}
 	}
@@ -832,20 +877,24 @@ void check_next_step(Position * newPosition, Level * level) {
 		level->tile[newPosition->y][newPosition->x] = '.';
 		break;
 	case 'h':
+	    playerMove(newPosition, user,level);
+		moveMonsters(level);
+		level->tile[newPosition->y][newPosition->x] = '.';
+		user->HEALTH++;
+		break;
 	case 'p':
+	    playerMove(newPosition, user,level);
+		moveMonsters(level);
+		level->tile[newPosition->y][newPosition->x] = '.';
+		user->SPEED++;
+		break;
 	case 'g':
 	    playerMove(newPosition, user,level);
 		moveMonsters(level);
 		level->tile[newPosition->y][newPosition->x] = '.';
+		user->DAMAGE++;
 		break;
-	case 'f':
-	    level->comment = "attention: You can reduce hunger and increase your health by eating food!!!";
-		playerMove(newPosition, user,level);
-		moveMonsters(level);
-		level->tile[newPosition->y][newPosition->x] = '.';
-		
-		printGameHub(level);
-		break;
+	
 	 case '>':
 	    level->comment = "attention: You can go to next level!!!";
 		printGameHub(level);
@@ -1017,12 +1066,32 @@ void check_next_step(Position * newPosition, Level * level) {
 		level->comment = " You will go into Spell room  ";
 		printGameHub(level);
 		level->tile[newPosition->y][newPosition->x] = '.';
-		// level->user->position->y = level->rooms[6]->position.y + 1;
-		// level->user->position->x = level->rooms[6]->position.x + 1;
-		attroff(COLOR_PAIR(2));
+
+		attron(COLOR_PAIR(2));
+		revealRoom(level, level->rooms[6]);
+		attron(COLOR_PAIR(2));
 		
+	    newPosition->x = level->rooms[6]->position.x + 1;
+		newPosition->y = level->rooms[6]->position.y + 1;
+		playerMove(newPosition,level->user,level);
+		//moveMonsters(level);
+
+		while (true) {
+        int newInput = getch(); 
+
+        if (newInput == 'b') {
+            level->user->position->x = level->secret.x;
+            level->user->position->y = level->secret.y;
+            break; 
+		}
+		 Position * newposition = malloc(sizeof(Position));
+		 newposition = handleInput(newInput, level->user,level);
+         check_next_step(newposition, level);
+		
+		}
 		level->comment = " ";
 		printGameHub(level);
+	
 	}
 }
 void printGameHub(Level * level){

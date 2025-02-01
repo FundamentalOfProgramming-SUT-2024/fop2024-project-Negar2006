@@ -21,6 +21,13 @@ typedef struct {
     int rank;
 } User;
 
+typedef struct {
+    int currentlevel;
+    Player player;
+    int number_of_levels;
+    Level ** levels;
+}GameState;
+
 
 int user_exists(const char *username);
 int is_valid_password(const char *password);
@@ -32,6 +39,8 @@ void hardness();
 void show_song_playlist();
 void play_song(const char *filename);
 void stop_music();
+void saveGame(GameState * game, const char *username);
+int loadGame(GameState *game, const char *username);
 
 void setting_menu(){
      int choice;
@@ -92,37 +101,37 @@ void hardness(){
     }
 
 }
-// void show_users() {
-//     FILE *file = fopen(FILENAME, "r");
-//     if (!file) {
-//         mvprintw(5, 10, "User file not found!");
-//         getch();
-//         return;
-//     }
-
-//     clear();
-//     attron(COLOR_PAIR(2));
-//     mvprintw(1, 10, "==================================");
-//     mvprintw(2, 10, " Registered Users List ");
-//     mvprintw(3, 10, "==================================");
-//     attroff(COLOR_PAIR(2));
-
-//     User user;
-//     int y = 5;
-
-//     mvprintw(y++, 10, "Username           Password           Email           score           rank");
-//     mvprintw(y++, 10, "--------------------------------------------------------------------------");
-
-//     while (fread(&user, sizeof(User), 1, file)) {
-//         mvprintw(y++, 10, "%-16s %-16s %-16s %-16d %-16d", user.username, user.password, user.email, user.score, user.rank);
-//     }
-
-//     fclose(file);
-
-//     mvprintw(y + 1, 10, "Press any key to return to the main menu...");
-//     getch();
-// }
 void show_users() {
+    FILE *file = fopen(FILENAME, "r");
+    if (!file) {
+        mvprintw(5, 10, "User file not found!");
+        getch();
+        return;
+    }
+
+    clear();
+    attron(COLOR_PAIR(2));
+    mvprintw(1, 10, "==================================");
+    mvprintw(2, 10, " Registered Users List ");
+    mvprintw(3, 10, "==================================");
+    attroff(COLOR_PAIR(2));
+
+    User user;
+    int y = 5;
+
+    mvprintw(y++, 10, "Username           Password           Email           score           rank");
+    mvprintw(y++, 10, "--------------------------------------------------------------------------");
+
+    while (fread(&user, sizeof(User), 1, file)) {
+        mvprintw(y++, 10, "%-16s %-16s %-16s %-16d %-16d", user.username, user.password, user.email, user.score, user.rank);
+    }
+
+    fclose(file);
+
+    mvprintw(y + 1, 10, "Press any key to return to the main menu...");
+    getch();
+}
+void show_users_score() {
     setlocale(LC_ALL, "");
     FILE *file = fopen(FILENAME, "r");
     if (!file) {
@@ -156,7 +165,7 @@ void show_users() {
     clear();
     attron(COLOR_PAIR(2));
     mvprintw(1, 10, "==================================");
-    mvprintw(2, 10, " Registered Users List ");
+    mvprintw(2, 10, " Scord_board ");
     mvprintw(3, 10, "==================================");
     attroff(COLOR_PAIR(2));
 
@@ -219,63 +228,84 @@ void Profile(const char * username){
     ch = getch();
    }while(ch != 'q');
 }
-int gameLoop(){
-    lleevveell = malloc(sizeof(Level *) * 4);
-    for(int i = 0 ; i < 4; i++){
-        lleevveell[i] = createLevel(i + 1);
-    }
-    
+int gameLoop() {
+    Level *level = createLevel(1); 
+    int ch;
+    Position *newPosition;
+
     time_t last_hunger_update = time(NULL);
     time_t last_health_decrease = time(NULL);
-	time_t last_health_update = time(NULL);
+    time_t last_health_update = time(NULL);
 
-	Level * level;
-	level = createLevel(1);
-    int ch;
-    Position * newPosition;
-	drawLevel(level);
+    drawLevel(level);
     printGameHub(level);
-    while ((ch = getch()) != '\n'){
-        printGameHub(level);
-        newPosition = handleInput(ch, level->user,level);
-        check_next_step(newPosition, level);
-        move(level->user->position->y,level->user->position->x);
-        
-        if (level->user->health <= 0)
-        {
+
+    while (1) {
+        ch = getch(); 
+
+        if (ch == '\n') {
             clear();
-            mvprintw(14,14,"END THE GAME...");
+            mvprintw(10, 10, "Do you want logout from the game?(y/n)");
+            char confirm = getch();
+            if (confirm == 'y' || confirm == 'Y') {
+                //TODO
+                clear();
+                mvprintw(10, 10, "You saved the game!!!");
+                getch();
+                break;
+            } else {
+                clear();
+                drawLevel(level); 
+                printGameHub(level);
+                continue;
+            }
+        }
+
+        newPosition = handleInput(ch, level->user, level);
+        check_next_step(newPosition, level);
+        move(level->user->position->y, level->user->position->x);
+
+        if (level->user->health <= 0) {
+            clear();
+            mvprintw(14, 14, "END");
             return -1;
         }
 
         time_t current_time = time(NULL);
-        if (difftime(current_time, last_hunger_update) >= 10) {
-        level->user->hunger += 10;
-        if (level->user->hunger >= 100) {
-            level->user->health -= 10;
-            level->user->hunger = 0; 
-        }
-        last_hunger_update = current_time;
 
-		if (difftime(current_time, last_health_update) >= 20) {
-        level->user->health += 5;
+        if (difftime(current_time, last_hunger_update) >= 10) {
+            level->user->hunger += 10;
+            if (level->user->hunger >= 100) {
+                level->user->health -= 10;
+                level->user->hunger = 0;
+            }
+            last_hunger_update = current_time;
         }
-        last_health_update = current_time;
+
+        if (difftime(current_time, last_health_update) >= 20) {
+            level->user->health += 5;
+            last_health_update = current_time;
+        }
 
         if (difftime(current_time, last_health_decrease) >= 5) {
-        for (int i = 0; i < level->numberOfMonsters; i++) {
-            Monster *monster = level->monsters[i];
-            int distance = abs(level->user->position->x - monster->position->x) + abs(level->user->position->y - monster->position->y);
-            if (distance <= 2 && monster->alive) { 
-                level->user->health -= 5; 
-                break;
+            for (int i = 0; i < level->numberOfMonsters; i++) {
+                Monster *monster = level->monsters[i];
+                int distance = abs(level->user->position->x - monster->position->x) +
+                               abs(level->user->position->y - monster->position->y);
+                if (distance <= 2 && monster->alive) {
+                    level->user->health -= 5;
+                    break;
+                }
             }
+            last_health_decrease = current_time;
         }
-        last_health_decrease = current_time;
+
+        printGameHub(level); 
     }
-    }
-    }
+
+    return 0; 
 }
+
 void pre_game_menu(const char *username) {
     int choice;
 
@@ -309,7 +339,6 @@ void pre_game_menu(const char *username) {
             case 2:
                 clear();
                 mvprintw(0, 0, "Continuing the previous game...");
-                //gameLoop();
                 getch();
                 break;
             case 3:
@@ -319,7 +348,7 @@ void pre_game_menu(const char *username) {
                 setting_menu();
                 break;
             case 5:
-                show_users();
+                show_users_score();
                 break;
             case 6:
                 return ;
@@ -645,8 +674,8 @@ void show_song_playlist(){
     mvprintw(7, 10, "==================================");
     attroff(COLOR_PAIR(1));
 
-    mvprintw(9, 10, "1. music1.mp3");
-    mvprintw(10, 10, "2. music2.mp3");
+    mvprintw(9, 10, "1.ANDY.mp3");
+    mvprintw(10, 10, "2. PARYA.mp3");
     mvprintw(11, 10, "3. Back to Menu");
     mvprintw(12, 10, "Select a song: ");
 
@@ -673,7 +702,6 @@ void show_song_playlist(){
     }
 }
 void play_song(const char *filename) {
-    // Initialize SDL_mixer if not already done
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
         printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
         return;
@@ -685,10 +713,55 @@ void play_song(const char *filename) {
         return;
     }
 
-    Mix_PlayMusic(music, -1); // Play in loop
+    Mix_PlayMusic(music, -1);
 }
 void stop_music(){
     Mix_HaltMusic();
     Mix_CloseAudio();
 }
+void saveGame(GameState * game, const char *username){
+    char filename[50];
+    sprintf(filename, "%s_save.dat", username);
+    FILE *file = fopen(filename, "wb");
 
+    fwrite(game, sizeof(GameState), 1,file);
+
+    for(int i = 0 ; i < game->number_of_levels;i++){
+        Level *lvl = game->levels[i];
+        fwrite(lvl, sizeof(Level),1,file);
+
+        for(int y = 0 ; y < lvl->level; y++){
+            fwrite(lvl->visited[y], sizeof(int), lvl->level, file);
+        }
+    }
+    fclose(file);
+}
+int loadGame(GameState *game, const char *username){
+    char filename[50];
+    sprintf(filename, "%s_save.dat", username);
+    FILE *file = fopen(filename, "rb");
+
+    fread(game, sizeof(GameState),1,file);
+
+    game->levels = malloc(4 * sizeof(Level *));
+    for(int i = 0 ; i < 4;i++){
+        game->levels[i] = malloc(sizeof(Level));
+        fread(game->levels[i],sizeof(Level),1,file);
+
+        Level * lvl = game->levels[i];
+
+        lvl->tile = malloc(lvl->level * sizeof(char *));
+        for(int y = 0 ; y < lvl->level; y++){
+            lvl->tile[y] = malloc(lvl->level * sizeof(char));
+            fread(lvl->tile[y],sizeof(char), lvl->level,file);
+        }
+
+        lvl->visited = malloc(lvl->level * sizeof(int *));
+        for(int y = 0; y < lvl->level ;y++){
+            lvl->visited[y] = malloc(lvl->level * sizeof(int));
+            fread(lvl->visited[y], sizeof(int), lvl->level, file);
+        }
+    }
+    fclose(file);
+    return 1;
+}

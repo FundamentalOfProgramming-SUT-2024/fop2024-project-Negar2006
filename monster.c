@@ -31,6 +31,7 @@ typedef struct Level
     int trap_revealed;
     Position secret;
     int secret_revealed;
+    //Room * spellroom;
 } Level;
 
 typedef struct Monster{
@@ -104,6 +105,9 @@ typedef struct Player
     int Magic_wand;
     int Dagger;
     char *main_weapon;
+    int HEALTH;
+    int SPEED;
+    int DAMAGE;
 } Player;
 
 
