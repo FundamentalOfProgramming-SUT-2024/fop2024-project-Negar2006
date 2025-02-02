@@ -1,0 +1,69 @@
+Level: 1
+Number of Rooms: 7
+Number of Monsters: 6
+Player Position: (28, 24)
+Player Health: 10
+Player Hunger: 80
+Player Attack: 1
+Player Gold: 34
+Room 0 Position: (21, 9)
+Room 0 Dimensions: 8 x 6
+Room 1 Position: (44, 5)
+Room 1 Dimensions: 6 x 12
+Room 2 Position: (70, 7)
+Room 2 Dimensions: 11 x 8
+Room 3 Position: (79, 19)
+Room 3 Dimensions: 11 x 9
+Room 4 Position: (36, 25)
+Room 4 Dimensions: 7 x 19
+Room 5 Position: (5, 22)
+Room 5 Dimensions: 10 x 10
+Room 6 Position: (140, 16)
+Room 6 Dimensions: 8 x 14
+Monster 0: Symbol: S, Position: (25, 15), Health: 20, Attack: 1
+Monster 1: Symbol: G, Position: (45, 9), Health: 15, Attack: 5
+Monster 2: Symbol: F, Position: (71, 15), Health: 10, Attack: 3
+Monster 3: Symbol: U, Position: (80, 24), Health: 30, Attack: 1
+Monster 4: Symbol: F, Position: (48, 26), Health: 10, Attack: 3
+Monster 5: Symbol: D, Position: (6, 26), Health: 5, Attack: 1
+Tile Grid:
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                            _________=__                                                                                              
+                                            |.....N....|                                                                                              
+                                   #########+........s.|              _=______                                                                        
+                                   #        |.........O+##############|..v...|                                                                        
+                     _=____        #        |....v.O...|             ##......|                                                                        
+                    #+....|        #        ___=________             #|g....h|                                                                        
+                    #|....+#       #                                 #|......|                                                                        
+                    #|...O|#       #                                 #|......|                                                                        
+                    #|O...|#       #                                 #|......|                                                                        
+                    #|....|#       #                                 #|..O...|                                                                        
+                    #|....|#       #                                 #|...p..|                                                                        
+                    #__=___#       #                                 #|......##                                                             __________
+               #######################################################___=____#                                                             |.....gp..
+               #                   #                                 ####################                                                   |.........
+               #                   #                                 #         ______=__#                                                   |.p......h
+               #                   #                                 ##########+......M|#                                                   |.........
+    ############                   #                                           |.......|#                                                   |.....g...
+    #_______=__#                   #                                           |.......##                                                   |.........
+    #|........|#                   #                                           |.......|                                                    __________
+    #|..>.....|#########################################                       |.......|                                                              
+    #|........##                   #_________________=_#                       |E......|                                                              
+    #|........|                    #|.................+#                       |..O....|                                                              
+    ##........|                    #|.................|                        |.......|                                                              
+     |........|                    ##....O............|                        |.O.....|                                                              
+     |........|                     |........s........|                        _____=___                                                              
+     |..O....O|                     |..........s....O.|                                                                                               
+     _____=____                     ____________=______                                                                                               
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
+                                                                                                                                                      
