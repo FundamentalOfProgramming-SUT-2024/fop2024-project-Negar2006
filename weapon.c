@@ -109,19 +109,19 @@ void add_gold(Level * level){
     int x1 = rand() % (level->rooms[random_room1]->width - 2) + level->rooms[random_room1]->position.x + 1;
     int y1 = rand() % (level->rooms[random_room1]->height - 2) + level->rooms[random_room1]->position.y + 1;
 
-    level->tile[y1][x1] = 'X';
+    level->tile[y1][x1] = '$';
 
     int random_room2 = rand() % 6;
     int x2 = rand() % (level->rooms[random_room2]->width - 2) + level->rooms[random_room2]->position.x + 1;
     int y2 = rand() % (level->rooms[random_room2]->height - 2) + level->rooms[random_room2]->position.y + 1;
 
-    level->tile[y2][x2] = 'X';
+    level->tile[y2][x2] = '$';
 
     int random_room3 = rand() % 6;
     int x3 = rand() % (level->rooms[random_room3]->width - 2) + level->rooms[random_room3]->position.x + 1;
     int y3 = rand() % (level->rooms[random_room3]->height - 2) + level->rooms[random_room3]->position.y + 1;
 
-    level->tile[y3][x3] = 'X';
+    level->tile[y3][x3] = '$';
 }
 //     Mace
 //         Damage: 5 units
@@ -198,8 +198,9 @@ void displaySpellMenu( Player * player){
     mvprintw(9, 4, "3. DAMAGE spell = %d",player->DAMAGE);
     refresh();
 }
-
-void Kill_monster(Level * level){
+void Kill_monster(Level * level, int direction){
+    int found = 0;
+    char weapon_symbel = ' ';
     if(strcmp(level->user->main_weapon, "Mase") == 0){   
         for(int i = 0 ; i < level->numberOfMonsters;i++){
             int x1 = level->monsters[i]->position->x;
@@ -231,477 +232,29 @@ void Kill_monster(Level * level){
             }
         }
     }else if(strcmp(level->user->main_weapon, "Dagger") == 0){
-
-        int direction;
-        direction = getch() - '0';
-        switch (direction){
-        case 8:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((x1 == x1) && ((y2 - y1) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x] = 'd';
-            }
-        }
-		break;
-	    case 2:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((x1 == x1) && ((y1 - y2) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x] = 'd';
-            }
-        }
-		break;
-	    case 4:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 == y1) && ((x2 - x1) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y][level->user->position->x - 5] = 'd';
-            }
-        }
-		break;
-	    case 6:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 == y1) && ((x1 - x2) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y][level->user->position->x + 5] = 'd';
-            }
-        }
-		break;
-	    case 1:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 - y2) <= 5 && ((x2 - x1) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x - 5] = 'd';
-            }
-        }
-		break;
-	    case 3:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 - y2) <= 5 && ((x1 - x2) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x + 5] = 'd';
-            }
-        }
-		break;
-	    case 7:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y2 - y1) <= 5 && ((x2 - x1) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x - 5] = 'd';
-            }
-        }
-		break;
-	    case 9:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y2 - y1) <= 5 && ((x1 - x2) <= 5)){
-                level->monsters[i]->health -= 12;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x + 5] = 'd';
-            }
-        }
-		break;
-        default:
-        break;
-        }
+        weapon_symbel = 'd';
     }else if(strcmp(level->user->main_weapon, "Normal_arrow") == 0){
-
-        int direction;
-        direction = getch() - '0';
-        switch (direction){
-        case 8:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((x1 == x1) && ((y2 - y1) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x] = 'a';
-            }
-        }
-		break;
-	    case 2:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((x1 == x1) && ((y1 - y2) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x] = 'a';
-            }
-        }
-		break;
-	    case 4:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 == y1) && ((x2 - x1) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y][level->user->position->x - 5] = 'a';
-            }
-        }
-		break;
-	    case 6:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 == y1) && ((x1 - x2) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y][level->user->position->x + 5] = 'a';
-            }
-        }
-		break;
-	    case 1:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 - y2) <= 5 && ((x2 - x1) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x - 5] = 'a';
-            }
-        }
-		break;
-	    case 3:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 - y2) <= 5 && ((x1 - x2) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x + 5] = 'a';
-            }
-        }
-		break;
-	    case 7:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y2 - y1) <= 5 && ((x2 - x1) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x - 5] = 'a';
-            }
-        }
-		break;
-	    case 9:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y2 - y1) <= 5 && ((x1 - x2) <= 5)){
-                level->monsters[i]->health -= 5;
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x + 5] = 'a';
-            }
-        }
-		break;
-        default:
-        break;
-        }
+        weapon_symbel = 'a';
     }else if(strcmp(level->user->main_weapon, "Magic_wand") == 0){
+        weapon_symbel = 'v';
+    }
+    for(int i = 0 ;i < level->numberOfMonsters;i++){
+        int x1 = level->monsters[i]->position->x;
+        int y1 = level->monsters[i]->position->y;
 
-        int direction;
-        direction = getch() - '0';
-        switch (direction){
-        case 8:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
+        int x2 = level->user->position->x;
+        int y2 = level->user->position->y;
 
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((x1 == x1) && ((y2 - y1) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x] = 'v';
-            }
-        }
-		break;
-	    case 2:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((x1 == x1) && ((y1 - y2) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x] = 'v';
-            }
-        }
-		break;
-	    case 4:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 == y1) && ((x2 - x1) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y][level->user->position->x - 5] = 'v';
-            }
-        }
-		break;
-	    case 6:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 == y1) && ((x1 - x2) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y][level->user->position->x + 5] = 'v';
-            }
-        }
-		break;
-	    case 1:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 - y2) <= 10 && ((x2 - x1) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x - 5] = 'v';
-            }
-        }
-		break;
-	    case 3:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y1 - y2) <= 10 && ((x1 - x2) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y + 5][level->user->position->x + 5] = 'v';
-            }
-        }
-		break;
-	    case 7:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y2 - y1) <= 10 && ((x2 - x1) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x - 5] = 'v';
-            }
-        }
-		break;
-	    case 9:
-        for(int i = 0 ; i < level->numberOfMonsters;i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-
-            if((y2 - y1) <= 10 && ((x1 - x2) <= 10)){
-                level->monsters[i]->health -= 15;
-                level->monsters[i]->pathfinding = 0;
-                moveMonsters(level);
-                level->user->main_weapon =" ";
-            }else{
-                level->user->main_weapon = " ";
-                level->tile[level->user->position->y - 5][level->user->position->x + 5] = 'v';
-            }
-        }
-		break;
-        default:
-        break;
+        int distance_x = abs(x2 - x1);
+        int distance_y = abs(y2 - y1);
+    }
+    if(!found &&(weapon_symbel == 'd' || weapon_symbel == 'a' || weapon_symbel == 'v')){
+        int drop_x = level->user->position->x;
+        int drop_y = level->user->position->y;
+        while(level->tile[drop_y][drop_x] != '.'){
+            
         }
     }
-
-}
-
-void printSpellRoom(Level * level) {
-    attron(COLOR_PAIR(2)); 
-
-    for (int x = level->rooms[6]->position.x; x < level->rooms[6]->position.x + level->rooms[6]->width; x++) {
-        mvprintw(level->rooms[6]->position.y, x, "_"); 
-        mvprintw(level->rooms[6]->position.y + level->rooms[6]->height - 1, x, "_"); 
-    }
-    
-    for (int y = level->rooms[6]->position.y + 1; y < level->rooms[6]->position.y + level->rooms[6]->height - 1; y++) {
-        mvprintw(y, level->rooms[6]->position.x, "|"); 
-        mvprintw(y, level->rooms[6]->position.x + level->rooms[6]->width - 1, "|"); 
-
-        for (int x = level->rooms[6]->position.x + 1; x < level->rooms[6]->position.x + level->rooms[6]->width - 1; x++) {
-            mvprintw(y, x, "."); 
-        }
-    }
-    mvprintw(level->rooms[6]->cols[0]->y, level->rooms[6]->cols[0]->x, "O"); 
-    mvprintw(level->rooms[6]->cols[1]->y, level->rooms[6]->cols[1]->x, "O"); 
-
-    attroff(COLOR_PAIR(2));
 }
 
 

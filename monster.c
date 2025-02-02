@@ -280,6 +280,7 @@ void drawMonster(Monster * monster, Level *level) {
         level->comment = "CONGRATULATION you kill the monster and got 40 gold !!!!!";
         monster->alive = 0;
         level->tile[monster->position->y][monster->position->x] = '.';
+        level->numberOfMonsters--;
     }
 }
 
