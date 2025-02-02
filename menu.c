@@ -21,13 +21,6 @@ typedef struct {
     int rank;
 } User;
 
-typedef struct {
-    int currentlevel;
-    Player player;
-    int number_of_levels;
-    Level ** levels;
-}GameState;
-
 
 int user_exists(const char *username);
 int is_valid_password(const char *password);
@@ -39,8 +32,12 @@ void hardness();
 void show_song_playlist();
 void play_song(const char *filename);
 void stop_music();
-void saveGame(GameState * game, const char *username);
-int loadGame(GameState *game, const char *username);
+void save_game_state(const char *username, Level *level);
+void save_user_info(const char *username, int score);
+int load_game_state(const char *username, Level *level);
+int load_user_info(const char *username, User *user);
+void save_level_to_txt(const char *username, Level *level);
+void change_player_color();
 
 void setting_menu(){
      int choice;
@@ -62,6 +59,7 @@ void setting_menu(){
     hardness();
         break;
     case 2:
+        change_player_color();
         break;
     case 3:
         return;
@@ -70,9 +68,6 @@ void setting_menu(){
         getch();
         break;
     }
-
-
-
 }
 void hardness(){
     int choice;
@@ -91,15 +86,53 @@ void hardness(){
     switch (choice)
     {
     case 1:
+        game_dificulty = 1;
         break;
     case 2:
-        return ;
+        game_dificulty = 2;
+        break;
+    case 3:
+        game_dificulty = 3;
+        break;
     default:
         mvprintw(17, 10, "Invalid option! Try again.");
         getch();
-        break;
+        return ;
     }
 
+}
+void change_player_color(){
+    int choice;
+    clear();
+
+    mvprintw(4,10,"===============================");
+    mvprintw(5,10,"Player color selection:");
+    mvprintw(6,10,"===============================");
+    mvprintw(8,10,"1. green");
+    mvprintw(9,10,"2. red");
+    mvprintw(10,10,"3. yello");
+
+    echo();
+    scanw("%d", &choice);
+    noecho();
+    switch (choice)
+    {
+    case 1:
+        player_color = 2;
+        break;
+    case 2:
+        player_color = 3;
+        break;
+    case 3:
+        player_color = 4;
+        break;
+    default:
+        mvprintw(12,10,"Invalid Option! Try again .");
+        getch();
+        return;
+    }
+    mvprintw(14,10,"Color set ! press any key to continue.");
+    getch();
 }
 void show_users() {
     FILE *file = fopen(FILENAME, "r");
@@ -228,8 +261,20 @@ void Profile(const char * username){
     ch = getch();
    }while(ch != 'q');
 }
-int gameLoop() {
-    Level *level = createLevel(1); 
+int gameLoop(const char * username, Level * level) {
+
+    lleevveell = malloc(sizeof(Level *) * 4);
+    for(int i = 0 ; i < 4; i++){
+        lleevveell[i] = malloc(sizeof(Level));
+    }
+    if(game_dificulty == 1){
+        level->user->health = 40;
+    }else if(game_dificulty == 2){
+        level->user->health = 60;
+    }else{
+        level->user->health = 100;
+    }
+    
     int ch;
     Position *newPosition;
 
@@ -245,10 +290,12 @@ int gameLoop() {
 
         if (ch == '\n') {
             clear();
-            mvprintw(10, 10, "Do you want logout from the game?(y/n)");
+            mvprintw(10, 10, "Do you want logout from the game %s?(y/n)", username);
             char confirm = getch();
             if (confirm == 'y' || confirm == 'Y') {
-                //TODO
+                save_game_state(username,level);
+                save_user_info(username,level->user->gold);
+                save_level_to_txt(username,level);
                 clear();
                 mvprintw(10, 10, "You saved the game!!!");
                 getch();
@@ -306,8 +353,9 @@ int gameLoop() {
     return 0; 
 }
 
-void pre_game_menu(const char *username) {
+void pre_game_menu(const char *username , User * user) {
     int choice;
+    Level *level = createLevel(1); 
 
     while (1) {
         clear();
@@ -318,13 +366,13 @@ void pre_game_menu(const char *username) {
         attroff(COLOR_PAIR(2));
 
         mvprintw(9, 10, "Welcome, %s!", username);
-        mvprintw(11, 10,"1. Start New Game");
-        mvprintw(12, 10,"2. Continue Previous Game");
-        mvprintw(13, 10,"3. Profile: (Do not selected this button if you are logged in as a guest)");
-        mvprintw(14, 10,"4. Setting");
-        mvprintw(15, 10,"5. Score Board: ");
-        mvprintw(16, 10,"6. Back to Main Menu");
-        mvprintw(19, 10,"Select an option: ");
+        mvprintw(11, 10, "1. Start New Game");
+        mvprintw(12, 10, "2. Continue Previous Game");
+        mvprintw(13, 10, "3. Profile");
+        mvprintw(14, 10, "4. Settings");
+        mvprintw(15, 10, "5. Score Board");
+        mvprintw(16, 10, "6. Back to Main Menu");
+        mvprintw(19, 10, "Select an option: ");
 
         echo();
         scanw("%d", &choice);
@@ -333,13 +381,15 @@ void pre_game_menu(const char *username) {
         switch (choice) {
             case 1:
                 clear();
-                gameLoop();
+                gameLoop(username, level); 
                 refresh();
                 break;
             case 2:
                 clear();
-                mvprintw(0, 0, "Continuing the previous game...");
-                getch();
+                if(load_game_state(username,level)){
+                    gameLoop(username,level);
+                }
+                refresh();
                 break;
             case 3:
                 Profile(username);
@@ -351,7 +401,7 @@ void pre_game_menu(const char *username) {
                 show_users_score();
                 break;
             case 6:
-                return ;
+                return;
             default:
                 mvprintw(17, 10, "Invalid option! Try again.");
                 getch();
@@ -366,7 +416,7 @@ void guest_login() {
     mvprintw(6, 10, "         Welcome, Guest!          ");
     mvprintw(7, 10, "==================================");
     attroff(COLOR_PAIR(2));
-    pre_game_menu("Guest");
+    pre_game_menu("Guest", NULL);
     getch();
 }
 int login_user() {
@@ -400,7 +450,7 @@ int login_user() {
         while (fread(&user, sizeof(User), 1, file)) {
             if (strcmp(user.username, username) == 0 && strcmp(user.password, password) == 0) {
                 fclose(file);
-                pre_game_menu(username);
+                pre_game_menu(username,&user);
                 return 1;
             }
         }
@@ -719,49 +769,173 @@ void stop_music(){
     Mix_HaltMusic();
     Mix_CloseAudio();
 }
-void saveGame(GameState * game, const char *username){
-    char filename[50];
-    sprintf(filename, "%s_save.dat", username);
-    FILE *file = fopen(filename, "wb");
+void save_game_state(const char *username, Level *level){
+    char game_filename[100];
+    snprintf(game_filename, sizeof(game_filename), "%s_game.dat", username);
+    FILE *game_file = fopen(game_filename, "wb");
+    if (!game_file) {
+        perror("Error saving game state");
+        return;
+    }
 
-    fwrite(game, sizeof(GameState), 1,file);
+    fwrite(level, sizeof(Level), 1, game_file);
 
-    for(int i = 0 ; i < game->number_of_levels;i++){
-        Level *lvl = game->levels[i];
-        fwrite(lvl, sizeof(Level),1,file);
+    for (int i = 0; i < level->numberOfRooms; i++) {
+        fwrite(level->rooms[i], sizeof(Room), 1, game_file);
+    }
 
-        for(int y = 0 ; y < lvl->level; y++){
-            fwrite(lvl->visited[y], sizeof(int), lvl->level, file);
+    for (int i = 0; i < level->numberOfMonsters; i++) {
+        fwrite(level->monsters[i], sizeof(Monster), 1, game_file);
+    }
+
+    fwrite(level->user, sizeof(Player), 1, game_file);
+
+    fclose(game_file);
+}
+void save_user_info(const char *username, int score){
+    FILE *file = fopen(FILENAME, "r+");
+    if (!file) {
+        perror("Error opening user file");
+        return;
+    }
+
+    User user;
+    while (fread(&user, sizeof(User), 1, file)) {
+        if (strcmp(user.username, username) == 0) {
+            user.score = score;
+            fseek(file, -sizeof(User), SEEK_CUR);
+            fwrite(&user, sizeof(User), 1, file);
+            break;
         }
     }
     fclose(file);
 }
-int loadGame(GameState *game, const char *username){
-    char filename[50];
-    sprintf(filename, "%s_save.dat", username);
-    FILE *file = fopen(filename, "rb");
+int load_game_state(const char *username, Level *level){
+    char game_filename[100];
+    snprintf(game_filename, sizeof(game_filename), "%s_game.dat", username);
+    FILE *game_file = fopen(game_filename, "rb");
+    if (!game_file) {
+        return 0; 
+    }
+    fread(level, sizeof(Level), 1, game_file);
 
-    fread(game, sizeof(GameState),1,file);
+    for (int i = 0; i < level->numberOfRooms; i++) {
+        level->rooms[i] = malloc(sizeof(Room)); 
+        fread(level->rooms[i], sizeof(Room), 1, game_file);
+    }
 
-    game->levels = malloc(4 * sizeof(Level *));
-    for(int i = 0 ; i < 4;i++){
-        game->levels[i] = malloc(sizeof(Level));
-        fread(game->levels[i],sizeof(Level),1,file);
+    for (int i = 0; i < level->numberOfMonsters; i++) {
+        level->monsters[i] = malloc(sizeof(Monster)); 
+        fread(level->monsters[i], sizeof(Monster), 1, game_file);
+    }
 
-        Level * lvl = game->levels[i];
+    level->user = malloc(sizeof(Player)); 
+    fread(level->user, sizeof(Player), 1, game_file);
 
-        lvl->tile = malloc(lvl->level * sizeof(char *));
-        for(int y = 0 ; y < lvl->level; y++){
-            lvl->tile[y] = malloc(lvl->level * sizeof(char));
-            fread(lvl->tile[y],sizeof(char), lvl->level,file);
-        }
+    fclose(game_file);
+    return 1;
+}
+int load_user_info(const char *username, User *user){
+    FILE *file = fopen(FILENAME, "r");
+    if (!file) {
+        perror("Error opening user file");
+        return 0;
+    }
 
-        lvl->visited = malloc(lvl->level * sizeof(int *));
-        for(int y = 0; y < lvl->level ;y++){
-            lvl->visited[y] = malloc(lvl->level * sizeof(int));
-            fread(lvl->visited[y], sizeof(int), lvl->level, file);
+    while (fread(user, sizeof(User), 1, file)) {
+        if (strcmp(user->username, username) == 0) {
+            fclose(file);
+            return 1; 
         }
     }
     fclose(file);
+    return 0;
+}
+void save_level_to_txt(const char *username, Level *level) {
+    char level_filename[100];
+    snprintf(level_filename, sizeof(level_filename), "%s_level.txt", username);
+    FILE *level_file = fopen(level_filename, "w");
+    if (!level_file) {
+        perror("Error saving level data");
+        return;
+    }
+
+    fprintf(level_file, "Level: %d\n", level->level);
+    fprintf(level_file, "Number of Rooms: %d\n", level->numberOfRooms);
+    fprintf(level_file, "Number of Monsters: %d\n", level->numberOfMonsters);
+
+    fprintf(level_file, "Player Position: (%d, %d)\n", level->user->position->x, level->user->position->y);
+    fprintf(level_file, "Player Health: %d\n", level->user->health);
+    fprintf(level_file, "Player Hunger: %d\n", level->user->hunger);
+    fprintf(level_file, "Player Attack: %d\n", level->user->attack);
+    fprintf(level_file, "Player Gold: %d\n", level->user->gold);
+    for (int i = 0; i < level->numberOfRooms; i++) {
+        Room *room = level->rooms[i];
+        fprintf(level_file, "Room %d Position: (%d, %d)\n", i, room->position.x, room->position.y);
+        fprintf(level_file, "Room %d Dimensions: %d x %d\n", i, room->height, room->width);
+    }
+
+    for (int i = 0; i < level->numberOfMonsters; i++) {
+        Monster *monster = level->monsters[i];
+        fprintf(level_file, "Monster %d: Symbol: %c, Position: (%d, %d), Health: %d, Attack: %d\n",
+                i, monster->symbol, monster->position->x, monster->position->y, monster->health, monster->attack);
+    }
+
+
+    fprintf(level_file, "Tile Grid:\n");
+    for (int i = 0; i < 40; i++) { 
+        for (int j = 0; j < 150; j++) {
+            fprintf(level_file, "%c", level->tile[i][j]); 
+        }
+        fprintf(level_file, "\n"); 
+    }
+    fclose(level_file);
+}
+int load_level_from_txt(const char *username, Level *level) {
+    char level_filename[100];
+    snprintf(level_filename, sizeof(level_filename), "%s_level.txt", username);
+    FILE *level_file = fopen(level_filename, "r");
+    if (!level_file) {
+        return 0; 
+    }
+
+    char line[256];
+    while (fgets(line, sizeof(line), level_file)) {
+        if (strncmp(line, "Level: ", 7) == 0) {
+            sscanf(line, "Level: %d", &level->level);
+        } else if (strncmp(line, "Number of Rooms: ", 17) == 0) {
+            sscanf(line, "Number of Rooms: %d", &level->numberOfRooms);
+            level->rooms = malloc(level->numberOfRooms * sizeof(Room*)); 
+        } else if (strncmp(line, "Number of Monsters: ", 20) == 0) {
+            sscanf(line, "Number of Monsters: %d", &level->numberOfMonsters);
+            level->monsters = malloc(level->numberOfMonsters * sizeof(Monster*)); 
+        } else if (strncmp(line, "Player Position: ", 17) == 0) {
+            sscanf(line, "Player Position: (%d, %d)", &level->user->position->x, &level->user->position->y);
+        } else if (strncmp(line, "Player Health: ", 15) == 0) {
+            sscanf(line, "Player Health: %d", &level->user->health);
+        } else if (strncmp(line, "Player Hunger: ", 16) == 0) {
+            sscanf(line, "Player Hunger: %d", &level->user->hunger);
+        } else if (strncmp(line, "Player Attack: ", 15) == 0) {
+            sscanf(line, "Player Attack: %d", &level->user->attack);
+        } else if (strncmp(line, "Player Gold: ", 13) == 0) {
+            sscanf(line, "Player Gold: %d", &level->user->gold);
+        } else if (strncmp(line, "Room ", 5) == 0) {
+            int roomIndex = 0;
+            sscanf(line, "Room %d Position: (%d, %d)", &roomIndex, &level->rooms[roomIndex]->position.x, &level->rooms[roomIndex]->position.y);
+        } else if (strncmp(line, "Room Dimensions: ", 17) == 0) {
+            int roomIndex = 0;
+            sscanf(line, "Room %d Dimensions: %d x %d", &roomIndex, &level->rooms[roomIndex]->height, &level->rooms[roomIndex]->width);
+        } else if (strncmp(line, "Monster ", 8) == 0) {
+            int monsterIndex = 0;
+            char symbol;
+            sscanf(line, "Monster %d: Symbol: %c, Position: (%d, %d), Health: %d, Attack: %d",
+                   &monsterIndex, &symbol, &level->monsters[monsterIndex]->position->x,
+                   &level->monsters[monsterIndex]->position->y, &level->monsters[monsterIndex]->health,
+                   &level->monsters[monsterIndex]->attack);
+            level->monsters[monsterIndex]->symbol = symbol;
+        }
+    }
+
+    fclose(level_file);
     return 1;
 }
