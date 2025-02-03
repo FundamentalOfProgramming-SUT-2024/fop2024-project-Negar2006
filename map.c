@@ -43,6 +43,8 @@ void placeDoors(Level * level);
 Level* createFinalBattleLevel(Player * player);
 int checkGoldRemaining(Level * level);
 int confirmPickup(const char *itemName);
+void Kill_monster(Level * level, int direction);
+void animateProjectile(Level *level, int startX, int startY, int direction, char weapon_symbol, int range);
 
 Room * createRoom(int grid, int numberOfDoors)
 {
@@ -643,7 +645,7 @@ Position * handleInput(int input, Player * user, Level *level){
 			break;
 		case 'w':
 		   if(strcmp(level->user->main_weapon,  "Mase") == 0){
-			level->user->Mase +=1;
+			
 			level->user->main_weapon = " ";
 		   }else if(strcmp(level->user->main_weapon,  "Dagger") == 0){
 			level->user->Dagger += 1;
@@ -662,7 +664,6 @@ Position * handleInput(int input, Player * user, Level *level){
 		case 'm':
 		    if(((strcmp(" ",level->user->main_weapon) == 0) || (strcmp("Mase",level->user->main_weapon) == 0)) && (level->user->Mase > 0)){
 				level->user->main_weapon = "Mase";
-				level->user->Mase--;
 				refresh();
 			}else{
 				mvprintw(14,1,"You cant change the main_weapon until you put your previouse weapons on the bag!!");
@@ -924,30 +925,25 @@ void drawLevel(Level * level){
 					case '%':
 					    attron(COLOR_PAIR(4));
 					    const wchar_t symbol10[] = L"\u26c2";
-                        mvaddnwstr(y, x, symbol10,-1);
+                        mvaddnwstr(y, x, symbol10,wcslen(symbol10));
 						attroff(COLOR_PAIR(4));
 						break;	
 					case 'N':
-					    attron(COLOR_PAIR(3));
-					    const wchar_t symbol11[] = L"\u2615";
-                        mvaddnwstr(y, x, symbol11,-1);
-						attroff(COLOR_PAIR(3));
-					    break;
 					case 'I':
 					    attron(COLOR_PAIR(3));
-					    const wchar_t symbol12[] = L"\u2615";
-                        mvaddnwstr(y, x, symbol12,-1);
+					    const wchar_t symbol11[] = L"\u2624";
+                        mvaddnwstr(y, x, symbol11,-1);
 						attroff(COLOR_PAIR(3));
 					    break;
 					case 'M':
 					    attron(COLOR_PAIR(3));
-					    const wchar_t symbol13[] = L"\u2660";
+					    const wchar_t symbol13[] = L"\U0001F354";
                         mvaddnwstr(y, x, symbol13,-1);
 						attroff(COLOR_PAIR(3));
 					    break;
 					case 'E':
 					    attron(COLOR_PAIR(3));
-					    const wchar_t symbol14[] = L"\u2663";
+					    const wchar_t symbol14[] = L"\U0001F374";
                         mvaddnwstr(y, x, symbol14,-1);
 						attroff(COLOR_PAIR(3));
 					    break;
@@ -1026,6 +1022,25 @@ void drawLevel(Level * level){
                         mvaddnwstr(y, x, symbol10,-1);
 						attroff(COLOR_PAIR(4));
 						break;
+					case 'N':
+					case 'I':
+					    attron(COLOR_PAIR(5));
+					    const wchar_t symbol11[] = L"\u2662";
+                        mvaddnwstr(y, x, symbol11,-1);
+						attroff(COLOR_PAIR(5));
+					    break;
+					case 'M':
+					    attron(COLOR_PAIR(5));
+					    const wchar_t symbol13[] = L"\u2660";
+                        mvaddnwstr(y, x, symbol13,-1);
+						attroff(COLOR_PAIR(5));
+					    break;
+					case 'E':
+					    attron(COLOR_PAIR(5));
+					    const wchar_t symbol14[] = L"\u2663";
+                        mvaddnwstr(y, x, symbol14,-1);
+						attroff(COLOR_PAIR(5));
+					    break;
                     default:
                         mvaddch(y, x, level->tile[y][x]);
 						break;
@@ -1583,5 +1598,143 @@ int checkGoldRemaining(Level * level){
 	}
 	return 0;
 }
+void Kill_monster(Level * level, int direction){
+    int found = 0;
+    char weapon_symbol = ' ';
+    int range = 0;
 
+    if(strcmp(level->user->main_weapon, "Mase") == 0){   
+        for(int i = 0 ; i < level->numberOfMonsters; i++){
+            int x1 = level->monsters[i]->position->x;
+            int y1 = level->monsters[i]->position->y;
+            int x2 = level->user->position->x;
+            int y2 = level->user->position->y;
+            int main_x = abs(x2 - x1);
+            int main_y = abs(y2 - y1);
+            
+            if((main_x + main_y == 1) || (main_x == 1 && main_y == 1)){
+                level->monsters[i]->health -= 5;
+                found = 1;
+            }
+        }
+    } else if(strcmp(level->user->main_weapon, "Sward") == 0){
+        for(int i = 0 ; i < level->numberOfMonsters; i++){
+            int x1 = level->monsters[i]->position->x;
+            int y1 = level->monsters[i]->position->y;
+            int x2 = level->user->position->x;
+            int y2 = level->user->position->y;
+            int main_x = abs(x2 - x1);
+            int main_y = abs(y2 - y1);
+            
+            if((main_x + main_y == 1) || (main_x == 1 && main_y == 1)){
+                level->monsters[i]->health -= 10;
+                found = 1;
+            }
+        }
+    } else {
+        if(strcmp(level->user->main_weapon, "Dagger") == 0){
+            weapon_symbol = 'd';
+            range = 5;
+        } else if(strcmp(level->user->main_weapon, "Normal_arrow") == 0){
+            weapon_symbol = 'a';
+            range = 5;
+        } else if(strcmp(level->user->main_weapon, "Magic_wand") == 0){
+            weapon_symbol = 'v';
+            range = 10;
+        }
+		animateProjectile(level,level->user->position->x,level->user->position->y,direction,weapon_symbol,range);
+        int x = level->user->position->x;
+        int y = level->user->position->y;
+        for(int i = 1; i <= range; i++){
+            switch(direction){
+                case 8: y--; break; 
+                case 2: y++; break; 
+                case 4: x--; break; 
+                case 6: x++; break; 
+                case 7: y--; x--; break; 
+                case 9: y--; x++; break; 
+                case 1: y++; x--; break; 
+                case 3: y++; x++; break; 
+            }
+
+            if(x < 0 || x >= 180 || y < 0 || y >= 40) break; 
+
+            for(int j = 0; j < level->numberOfMonsters; j++){
+                if(level->monsters[j]->position->x == x && level->monsters[j]->position->y == y){
+                    level->monsters[j]->health -= 10;
+                    found = 1;
+                    break;
+                }
+            }
+            if(found) break;
+        }
+    }
+    if (!found && weapon_symbol != ' ') {
+    int drop_x = level->user->position->x;
+    int drop_y = level->user->position->y;
+    int original_x = drop_x; 
+    int original_y = drop_y; 
+
+    for (int i = range; i >= 1; i--) {
+        switch (direction) {
+            case 8: drop_y -= i; break; 
+            case 2: drop_y += i; break; 
+            case 4: drop_x -= i; break; 
+            case 6: drop_x += i; break; 
+            case 7: drop_y -= i; drop_x--; break; 
+            case 9: drop_y -= i; drop_x++; break; 
+            case 1: drop_y += i; drop_x--; break; 
+            case 3: drop_y += i; drop_x++; break; 
+        }
+
+        if (level->tile[drop_y][drop_x] == '.') {
+            level->tile[drop_y][drop_x] = weapon_symbol;
+            break;
+        } else {
+            drop_x = original_x;
+            drop_y = original_y;
+        }
+    }
+}
+
+}
+
+void animateProjectile(Level *level, int startX, int startY, int direction, char weapon_symbol, int range){
+    int x = startX;
+    int y = startY;
+    int prev_x = x;
+    int prev_y = y;
+    char lastChar = level->tile[y][x];  
+
+    for (int i = 1; i <= range; i++) {
+        prev_x = x;
+        prev_y = y;
+
+        switch (direction) {
+            case 8: y--; break;  
+            case 2: y++; break;  
+            case 4: x--; break;  
+            case 6: x++; break;  
+            case 7: y--; x--; break;  
+            case 9: y--; x++; break;  
+            case 1: y++; x--; break;  
+            case 3: y++; x++; break;  
+        }
+
+        if (x < 0 || x >= 180 || y < 0 || y >= 40) break;  
+
+        if (level->tile[y][x] == '|' || level->tile[y][x] == '_' || level->tile[y][x] == '+' || level->tile[y][x] == 'O') {
+            break;  
+        }
+
+        mvaddch(y, x, weapon_symbol);  
+        refresh();
+        napms(50);  
+
+        mvaddch(prev_y, prev_x, lastChar);  
+        lastChar = level->tile[y][x];  
+    }
+}
+
+	
 	

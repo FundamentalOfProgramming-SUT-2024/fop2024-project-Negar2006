@@ -4,6 +4,9 @@
 #include <math.h>
 #include <locale.h>
 #include <wchar.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h> 
 
 #include "monster.c"
 
@@ -225,101 +228,4 @@ void displaySpellMenu( Player * player){
     mvprintw(10,4, "4. reduce player speed: ");
     refresh();
 }
-void Kill_monster(Level * level, int direction){
-    int found = 0;
-    char weapon_symbol = ' ';
-    int range = 0;
-
-    if(strcmp(level->user->main_weapon, "Mase") == 0){   
-        for(int i = 0 ; i < level->numberOfMonsters; i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-            int main_x = abs(x2 - x1);
-            int main_y = abs(y2 - y1);
-            
-            if((main_x + main_y == 1) || (main_x == 1 && main_y == 1)){
-                level->monsters[i]->health -= 5;
-                found = 1;
-            }
-        }
-    } else if(strcmp(level->user->main_weapon, "Sward") == 0){
-        for(int i = 0 ; i < level->numberOfMonsters; i++){
-            int x1 = level->monsters[i]->position->x;
-            int y1 = level->monsters[i]->position->y;
-            int x2 = level->user->position->x;
-            int y2 = level->user->position->y;
-            int main_x = abs(x2 - x1);
-            int main_y = abs(y2 - y1);
-            
-            if((main_x + main_y == 1) || (main_x == 1 && main_y == 1)){
-                level->monsters[i]->health -= 10;
-                found = 1;
-            }
-        }
-    } else {
-        if(strcmp(level->user->main_weapon, "Dagger") == 0){
-            weapon_symbol = 'd';
-            range = 5;
-        } else if(strcmp(level->user->main_weapon, "Normal_arrow") == 0){
-            weapon_symbol = 'a';
-            range = 5;
-        } else if(strcmp(level->user->main_weapon, "Magic_wand") == 0){
-            weapon_symbol = 'v';
-            range = 10;
-        }
-
-        int x = level->user->position->x;
-        int y = level->user->position->y;
-        for(int i = 1; i <= range; i++){
-            switch(direction){
-                case 8: y--; break; 
-                case 2: y++; break; 
-                case 4: x--; break; 
-                case 6: x++; break; 
-                case 7: y--; x--; break; 
-                case 9: y--; x++; break; 
-                case 1: y++; x--; break; 
-                case 3: y++; x++; break; 
-            }
-
-            if(x < 0 || x >= 180 || y < 0 || y >= 40) break; 
-
-            for(int j = 0; j < level->numberOfMonsters; j++){
-                if(level->monsters[j]->position->x == x && level->monsters[j]->position->y == y){
-                    level->monsters[j]->health -= 10;
-                    found = 1;
-                    break;
-                }
-            }
-            if(found) break;
-        }
-    }
-    if(!found && weapon_symbol != ' '){
-        int drop_x = level->user->position->x;
-        int drop_y = level->user->position->y;
-        for(int i = range; i >= 1; i--){
-            switch(direction){
-                case 8: drop_y -= i; break;
-                case 2: drop_y += i; break;
-                case 4: drop_x -= i; break;
-                case 6: drop_x += i; break;
-                case 7: drop_y -= i; drop_x--; break;
-                case 9: drop_y -= i; drop_x += i; break;
-                case 1: drop_y += i; drop_x -= i; break;
-                case 3: drop_y += i; drop_x += i; break;
-            }
-            if(level->tile[drop_y][drop_x] == '.'){
-                level->tile[drop_y][drop_x] = weapon_symbol;
-                break;
-            }
-        }
-    }
-}
-
-	
-
-
-
 
