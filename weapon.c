@@ -107,20 +107,47 @@ void add_gold(Level * level){
     int random_room1 = rand() % 6;
     int x1 = rand() % (level->rooms[random_room1]->width - 2) + level->rooms[random_room1]->position.x + 1;
     int y1 = rand() % (level->rooms[random_room1]->height - 2) + level->rooms[random_room1]->position.y + 1;
-
+    attron(COLOR_PAIR(4));
     level->tile[y1][x1] = '$';
+    attroff(COLOR_PAIR(4));
 
     int random_room2 = rand() % 6;
     int x2 = rand() % (level->rooms[random_room2]->width - 2) + level->rooms[random_room2]->position.x + 1;
     int y2 = rand() % (level->rooms[random_room2]->height - 2) + level->rooms[random_room2]->position.y + 1;
-
+    attron(COLOR_PAIR(4));
     level->tile[y2][x2] = '$';
+    attroff(COLOR_PAIR(4));
 
     int random_room3 = rand() % 6;
     int x3 = rand() % (level->rooms[random_room3]->width - 2) + level->rooms[random_room3]->position.x + 1;
     int y3 = rand() % (level->rooms[random_room3]->height - 2) + level->rooms[random_room3]->position.y + 1;
-
+    attron(COLOR_PAIR(4));
     level->tile[y3][x3] = '$';
+    attroff(COLOR_PAIR(4));
+
+
+    int random_room4 = rand() % 6;
+    int x4 = rand() % (level->rooms[random_room4]->width - 2) + level->rooms[random_room4]->position.x + 1;
+    int y4 = rand() % (level->rooms[random_room4]->height - 2) + level->rooms[random_room4]->position.y + 1;
+    attron(COLOR_PAIR(4));
+    level->tile[y4][x4] = '$';
+    attroff(COLOR_PAIR(4));
+}
+void add_blackGold(Level *level){
+
+    int random_room1 = rand() % 6;
+    int x1 = rand() % (level->rooms[random_room1]->width - 2) + level->rooms[random_room1]->position.x + 1;
+    int y1 = rand() % (level->rooms[random_room1]->height - 2) + level->rooms[random_room1]->position.y + 1;
+    attron(COLOR_PAIR(4));
+    level->tile[y1][x1] = '$';
+    attroff(COLOR_PAIR(4));
+
+    int random_room2 = rand() % 6;
+    int x2 = rand() % (level->rooms[random_room2]->width - 2) + level->rooms[random_room2]->position.x + 1;
+    int y2 = rand() % (level->rooms[random_room2]->height - 2) + level->rooms[random_room2]->position.y + 1;
+    attron(COLOR_PAIR(4));
+    level->tile[y2][x2] = '%';
+    attroff(COLOR_PAIR(4));
 }
 //     Mace
 //         Damage: 5 units

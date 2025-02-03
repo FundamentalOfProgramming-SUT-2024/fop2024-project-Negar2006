@@ -9,6 +9,7 @@
 #include <SDL2/SDL_mixer.h>
 #include <locale.h>
 #include <wchar.h>
+#define MENU_ITEMS 6 
 
 int user_exists(const char *username);
 int is_valid_password(const char *password);
@@ -368,27 +369,57 @@ int gameLoop(const char * username, Level * level) {
         }
 
         if (difftime(current_time, last_health_decrease) >= 5) {
-            for (int i = 0; i < level->numberOfMonsters; i++) {
-                Monster *monster = level->monsters[i];
-                int distance = abs(level->user->position->x - monster->position->x) +
-                               abs(level->user->position->y - monster->position->y);
-                if (distance <= 2 && monster->alive) {
-                    level->user->health -= 5;
+        for (int i = 0; i < level->numberOfMonsters; i++) {
+        Monster *monster = level->monsters[i];
+        int distance = abs(level->user->position->x - monster->position->x) +
+                       abs(level->user->position->y - monster->position->y);
+        
+        if (distance <= 2 && monster->alive) {
+            switch(monster->symbol) { 
+                case 'F':
+                    level->user->health -= 4; 
+                    level->comment = "The Fire Breathing Monster takes  health away from you";
+                    printGameHub(level);
                     break;
-                }
+                case 'U':
+                    level->user->health -= 10; 
+                    level->comment = "The Undeed takes 10 health away from you";
+                    printGameHub(level);
+                    break;
+                case 'S':
+                    level->user->health -= 7; 
+                    level->comment = "The snake takes 7 health away from you!";
+                    printGameHub(level);
+                    break;
+                case 'D':
+                    level->user->health -= 3; 
+                    level->comment = "The Deamon takes 3 health away from you";
+                    printGameHub(level);
+                    break;
+                case 'G':
+                    level->user->health -= 5;
+                    level->comment = "The Giant takes 5 health away from you";
+                    printGameHub(level); 
+                    break;
             }
-            last_health_decrease = current_time;
+            break; 
         }
+    }
+    last_health_decrease = current_time;
+}
+
 
         printGameHub(level); 
     }
 
     return 0; 
 }
-void pre_game_menu(const char *username , User * user) {
+void pre_game_menu(const char *username, User *user) {
     int choice;
+    MEVENT event;
 
     Level *level = createLevel(1);
+    mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL); // Enable mouse events
 
     while (1) {
         clear();
@@ -399,15 +430,17 @@ void pre_game_menu(const char *username , User * user) {
         attroff(COLOR_PAIR(2));
 
         mvprintw(9, 10, "Welcome, %s!", username);
-        if(strcmp(username, "Guest") != 0){
-        time_t rawtime;
-        struct tm *timeinfo;
-        char buffer[50];
-        time(&rawtime);
-        timeinfo = localtime(&rawtime);
-        strftime(buffer,50, "%Y-%m-%d %H: %M: %S",timeinfo);
-        mvprintw(11, 10, "First play: %s",buffer);
-        mvprintw(12, 10, "Times Entered: %d",user->playCount);}
+        
+        if (strcmp(username, "Guest") != 0) {
+            time_t rawtime;
+            struct tm *timeinfo;
+            char buffer[50];
+            time(&rawtime);
+            timeinfo = localtime(&rawtime);
+            strftime(buffer, 50, "%Y-%m-%d %H:%M:%S", timeinfo);
+            mvprintw(11, 10, "First play: %s", buffer);
+            mvprintw(12, 10, "Times Entered: %d", user->playCount);
+        }
 
         mvprintw(14, 10, "1. Start New Game");
         mvprintw(15, 10, "2. Continue Previous Game");
@@ -415,43 +448,144 @@ void pre_game_menu(const char *username , User * user) {
         mvprintw(17, 10, "4. Settings");
         mvprintw(18, 10, "5. Score Board");
         mvprintw(19, 10, "6. Back to Main Menu");
-        mvprintw(23, 10, "Select an option: ");
 
-        echo();
-        scanw("%d", &choice);
-        noecho();
+        refresh(); // Refresh the screen to show updates
 
-        switch (choice) {
-            case 1:
-                clear();
-                gameLoop(username, level); 
-                refresh();
-                break;
-            case 2:
-                clear();
-                if(load_game_state(username,level)){
-                    gameLoop(username,level);
+        int ch = getch();
+
+        if (ch == KEY_MOUSE) {
+            if (getmouse(&event) == OK) {
+                if (event.bstate & BUTTON1_CLICKED) {
+                    // Determine which option was clicked based on event.y
+                    switch (event.y) {
+                        case 14:
+                            clear();
+                            gameLoop(username, level);
+                            break;
+                        case 15:
+                            clear();
+                            if (load_game_state(username, level)) {
+                                gameLoop(username, level);
+                            }
+                            break;
+                        case 16:
+                            Profile(username);
+                            break;
+                        case 17:
+                            setting_menu();
+                            break;
+                        case 18:
+                            show_users_score(username);
+                            break;
+                        case 19:
+                            return; // Exit menu
+                    }
                 }
-                refresh();
-                break;
-            case 3:
-                Profile(username);
-                break;
-            case 4:
-                setting_menu();
-                break;
-            case 5:
-                show_users_score(username);
-                break;
-            case 6:
-                return;
-            default:
-                mvprintw(17, 10, "Invalid option! Try again.");
-                getch();
-                break;
+            }
+        } else {
+            // Handle keyboard input
+            echo();
+            scanw("%d", &choice);
+            noecho();
+
+            switch (choice) {
+                case 1:
+                    clear();
+                    gameLoop(username, level);
+                    break;
+                case 2:
+                    clear();
+                    if (load_game_state(username, level)) {
+                        gameLoop(username, level);
+                    }
+                    break;
+                case 3:
+                    Profile(username);
+                    break;
+                case 4:
+                    setting_menu();
+                    break;
+                case 5:
+                    show_users_score(username);
+                    break;
+                case 6:
+                    return; // Exit menu
+                default:
+                    mvprintw(17, 10, "Invalid option! Try again.");
+                    getch();
+                    break;
+            }
         }
     }
 }
+
+// void pre_game_menu(const char *username , User * user) {
+//     int choice;
+
+//     Level *level = createLevel(1);
+
+//     while (1) {
+//         clear();
+//         attron(COLOR_PAIR(2));
+//         mvprintw(5, 10, "==================================");
+//         mvprintw(6, 10, " Pre-Game Menu ");
+//         mvprintw(7, 10, "==================================");
+//         attroff(COLOR_PAIR(2));
+
+//         mvprintw(9, 10, "Welcome, %s!", username);
+//         if(strcmp(username, "Guest") != 0){
+//         time_t rawtime;
+//         struct tm *timeinfo;
+//         char buffer[50];
+//         time(&rawtime);
+//         timeinfo = localtime(&rawtime);
+//         strftime(buffer,50, "%Y-%m-%d %H: %M: %S",timeinfo);
+//         mvprintw(11, 10, "First play: %s",buffer);
+//         mvprintw(12, 10, "Times Entered: %d",user->playCount);}
+
+//         mvprintw(14, 10, "1. Start New Game");
+//         mvprintw(15, 10, "2. Continue Previous Game");
+//         mvprintw(16, 10, "3. Profile");
+//         mvprintw(17, 10, "4. Settings");
+//         mvprintw(18, 10, "5. Score Board");
+//         mvprintw(19, 10, "6. Back to Main Menu");
+//         mvprintw(23, 10, "Select an option: ");
+
+//         echo();
+//         scanw("%d", &choice);
+//         noecho();
+
+//         switch (choice) {
+//             case 1:
+//                 clear();
+//                 gameLoop(username, level); 
+//                 refresh();
+//                 break;
+//             case 2:
+//                 clear();
+//                 if(load_game_state(username,level)){
+//                     gameLoop(username,level);
+//                 }
+//                 refresh();
+//                 break;
+//             case 3:
+//                 Profile(username);
+//                 break;
+//             case 4:
+//                 setting_menu();
+//                 break;
+//             case 5:
+//                 show_users_score(username);
+//                 break;
+//             case 6:
+//                 return;
+//             default:
+//                 mvprintw(17, 10, "Invalid option! Try again.");
+//                 getch();
+//                 break;
+//         }
+//     }
+// }
 void guest_login() {
     clear();
     attron(COLOR_PAIR(2));
@@ -673,61 +807,83 @@ void create_user_menu() {
         valid = 1;
     }
 }
-void welcome_screen() {
-    clear();
-    attron(COLOR_PAIR(1));
-    mvprintw(5, 10, "==================================");
-    mvprintw(6, 10, " Welcome to the Game ");
-    mvprintw(7, 10, "==================================");
-    attroff(COLOR_PAIR(1));
-
-    mvprintw(9, 10, "1. Create New User");
-    mvprintw(10, 10, "2. Login User");
-    mvprintw(11, 10, "3. Login as Guest");
-    mvprintw(12, 10, "4. Show Registered Users");
-    mvprintw(13, 10, "5. Choose your song:)");
-    mvprintw(14, 10, "6. Exit");
-    mvprintw(17, 10, "Select an option: ");
-}
-void main_menu() {
-    int choice;
+const char *menu_options[] = {
+    "Create New User",
+    "Login User",
+    "Login as Guest",
+    "Show Registered Users",
+    "Choose your song :)",
+    "Exit"
+};
+void menu_screen() {
+    int highlight = 0; 
+    int choice = -1; 
+    int ch;
 
     while (1) {
-        welcome_screen();
-        echo();
-        scanw("%d", &choice);
-        noecho();
+        clear();
 
-        switch (choice) {
-            case 1:
-                create_user_menu();
+        attron(COLOR_PAIR(1));
+        mvprintw(3, 10, "==================================");
+        mvprintw(4, 10, " Welcome to the Game ");
+        mvprintw(5, 10, "==================================");
+        attroff(COLOR_PAIR(1));
+
+        for (int i = 0; i < MENU_ITEMS; i++) {
+            if (i == highlight) {
+                attron(A_REVERSE | COLOR_PAIR(1));
+            } else {
+                attron(COLOR_PAIR(2)); 
+            }
+            mvprintw(8 + i, 15, "%d. %s", i + 1, menu_options[i]);
+            attroff(A_REVERSE | COLOR_PAIR(1));
+        }
+
+        mvprintw(16, 10, "Use UP/DOWN arrow keys to navigate, ENTER to select.");
+
+        ch = getch();
+
+        switch (ch) {
+            case KEY_UP:
+                highlight = (highlight == 0) ? MENU_ITEMS - 1 : highlight - 1;
                 break;
-            case 2:
-                if (login_user()) {
-                }
+            case KEY_DOWN:
+                highlight = (highlight == MENU_ITEMS - 1) ? 0 : highlight + 1;
                 break;
-            case 3:
-                guest_login();
+            case 10: 
+                choice = highlight;
                 break;
-            case 4:
-                show_users();
-                break;
-            case 5:
-                show_song_playlist();
-                break;
-            case 6:
-                stop_music();
-                endwin();
-                exit(0);
-                break;
-            default:
-                attron(COLOR_PAIR(3));
-                mvprintw(15, 10, "Invalid option. Press any key to try again...");
-                attroff(COLOR_PAIR(3));
-                getch();
+        }
+
+        if (choice != -1) {
+            switch (choice) {
+                case 0:
+                    create_user_menu();
+                    break;
+                case 1:
+                    if (login_user()) {
+                        // Login successful
+                    }
+                    break;
+                case 2:
+                    guest_login();
+                    break;
+                case 3:
+                    show_users();
+                    break;
+                case 4:
+                    show_song_playlist();
+                    break;
+                case 5:
+                    stop_music();
+                    endwin(); // Exit ncurses mode
+                    exit(0);
+                    break;
+            }
+            choice = -1; 
         }
     }
-}
+}	
 int user_exists(const char *username) {
     FILE *file = fopen(FILENAME, "r");
     if (!file) return 0;

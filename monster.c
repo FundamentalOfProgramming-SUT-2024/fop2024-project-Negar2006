@@ -185,7 +185,6 @@ Monster * selectMonster(int level){
         case 5:
             return createMonster('U', 30, 1, 1, 1, 2);
     }
-
 }
 Monster * createMonster(char symbol, int health, int attack, int speed, int defence, int pathfinding){
     Monster * newMonster;

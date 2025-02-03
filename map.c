@@ -42,6 +42,7 @@ void placeTraps(Level * level);
 void placeDoors(Level * level);
 Level* createFinalBattleLevel(Player * player);
 int checkGoldRemaining(Level * level);
+int confirmPickup(const char *itemName);
 
 Room * createRoom(int grid, int numberOfDoors)
 {
@@ -641,19 +642,19 @@ Position * handleInput(int input, Player * user, Level *level){
 		case '\n':
 			break;
 		case 'w':
-		   if(level->user->main_weapon == "Mase"){
+		   if(strcmp(level->user->main_weapon,  "Mase") == 0){
 			level->user->Mase +=1;
 			level->user->main_weapon = " ";
-		   }else if(level->user->main_weapon == "Dagger"){
+		   }else if(strcmp(level->user->main_weapon,  "Dagger") == 0){
 			level->user->Dagger += 1;
 			level->user->main_weapon = " ";
-		   }else if(level->user->main_weapon == "Magic_wand"){
+		   }else if(strcmp(level->user->main_weapon,  "Magic_wand") == 0){
 			level->user->Magic_wand += 1;
 			level->user->main_weapon = " ";
-		   }else if(level->user->main_weapon == "Normal_arrow"){
+		   }else if(strcmp(level->user->main_weapon,  "Normal_arrow") == 0){
 			level->user->Normal_arrow+=1;
 			level->user->main_weapon = " ";
-		   }else if(level->user->main_weapon == "Sward"){
+		   }else if(strcmp(level->user->main_weapon,  "Sward") == 0){
 			level->user->Sward +=1;
 			level->user->main_weapon = " ";
 		   }
@@ -794,6 +795,7 @@ Level * createLevel(int level) {
 	placeDoors(newLevel);
 	placeFood(newLevel);
 	add_gold(newLevel);
+	add_blackGold(newLevel);
 
 	Room *firstroom = newLevel->rooms[0];
 	for(int y = firstroom->position.y; y < firstroom->position.y + firstroom->height;y++){
@@ -906,18 +908,52 @@ void drawLevel(Level * level){
 						attroff(COLOR_PAIR(3));
 						break;
 					case 'p':
-					    const wchar_t symbol7[] = L"\U0000269C";//\U0001F680
-						//moshak
+					    const wchar_t symbol7[] = L"\U0000269C";
                         mvaddnwstr(y, x, symbol7,-1);
 						break;
 					case 'g':
-					    const wchar_t symbol8[] = L"\U000026B0";//\U0001F4A5
-						//damage
+					    const wchar_t symbol8[] = L"\U000026B0";
                         mvaddnwstr(y, x, symbol8,-1);
 						break;
-					
-                    default:
-                        mvaddch(y, x, level->tile[y][x]);
+					case '$':
+					    attron(COLOR_PAIR(4));
+					    const wchar_t symbol9[] = L"\u26c0";
+                        mvaddnwstr(y, x, symbol9,-1);
+						attroff(COLOR_PAIR(4));
+						break;
+					case '%':
+					    attron(COLOR_PAIR(4));
+					    const wchar_t symbol10[] = L"\u26c2";
+                        mvaddnwstr(y, x, symbol10,-1);
+						attroff(COLOR_PAIR(4));
+						break;	
+					case 'N':
+					    attron(COLOR_PAIR(3));
+					    const wchar_t symbol11[] = L"\u2615";
+                        mvaddnwstr(y, x, symbol11,-1);
+						attroff(COLOR_PAIR(3));
+					    break;
+					case 'I':
+					    attron(COLOR_PAIR(3));
+					    const wchar_t symbol12[] = L"\u2615";
+                        mvaddnwstr(y, x, symbol12,-1);
+						attroff(COLOR_PAIR(3));
+					    break;
+					case 'M':
+					    attron(COLOR_PAIR(3));
+					    const wchar_t symbol13[] = L"\u2660";
+                        mvaddnwstr(y, x, symbol13,-1);
+						attroff(COLOR_PAIR(3));
+					    break;
+					case 'E':
+					    attron(COLOR_PAIR(3));
+					    const wchar_t symbol14[] = L"\u2663";
+                        mvaddnwstr(y, x, symbol14,-1);
+						attroff(COLOR_PAIR(3));
+					    break;
+					default:
+                        mvaddch(y, x, level->tile[y][x]); 
+						break;
                 }
 			}
 			}else{
@@ -925,6 +961,7 @@ void drawLevel(Level * level){
 			}
 	 	}
 	}
+	attroff(COLOR_PAIR(4));
 	if(level->monsters != NULL){
 	for(i = 0 ; i < level->numberOfMonsters;i++){
 		drawMonster(level->monsters[i] , level);
@@ -975,12 +1012,23 @@ void drawLevel(Level * level){
 						break;
 					case 'g':
 					    const wchar_t symbol8[] = L"\U000026B0";//\U0001F4A5
-						//damage
                         mvaddnwstr(y, x, symbol8,-1);
 						break;
-					
+					case '$':
+					    attron(COLOR_PAIR(4));
+					    const wchar_t symbol9[] = L"\u26c0";
+                        mvaddnwstr(y, x, symbol9,-1);
+						attroff(COLOR_PAIR(4));
+						break;
+					case '%':
+					    attron(COLOR_PAIR(4));
+					    const wchar_t symbol10[] = L"\u26c2";
+                        mvaddnwstr(y, x, symbol10,-1);
+						attroff(COLOR_PAIR(4));
+						break;
                     default:
                         mvaddch(y, x, level->tile[y][x]);
+						break;
                 }
 			}
 			}else{
@@ -1028,6 +1076,13 @@ void revealRoom(Level *level, Room *room){
 		}
 	}
 }
+int confirmPickup(const char *itemName) {
+    clear();
+    mvprintw(10, 10, "Do you want to pick up the %s? (y/n)", itemName);
+    refresh();
+    char confirm = getch();
+    return (confirm == 'y' || confirm == 'Y'); 
+}
 void check_next_step(Position * newPosition, Level * level, const char * username) {
 	Player * user;
 	user = level->user;
@@ -1042,47 +1097,61 @@ void check_next_step(Position * newPosition, Level * level, const char * usernam
 		printGameHub(level);
 		break;
 	case 'v':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		user->Magic_wand += 8;
-		level->tile[newPosition->y][newPosition->x] = '.';
-		break;
+	    if (confirmPickup("Magic Wand")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->Magic_wand += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	case 'd':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		user->Dagger += 10;
-		level->tile[newPosition->y][newPosition->x] = '.';
-		break;
+	    if (confirmPickup("Dagger")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->Dagger += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	case 'a':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		user->Normal_arrow += 20;
-		level->tile[newPosition->y][newPosition->x] = '.';
-		break;
+	   if (confirmPickup("Normal Arrow")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->Normal_arrow += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	case 's':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		user->Sward += 1;
-		level->tile[newPosition->y][newPosition->x] = '.';
-		break;
+	    if (confirmPickup("Sword")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->Sward += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	case 'h':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		level->tile[newPosition->y][newPosition->x] = '.';
-		user->HEALTH++;
-		break;
+	    if (confirmPickup("HEALTH")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->HEALTH += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	case 'p':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		level->tile[newPosition->y][newPosition->x] = '.';
-		user->SPEED++;
-		break;
+	    if (confirmPickup("Speed Boost")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->SPEED += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	case 'g':
-	    playerMove(newPosition, user,level);
-		moveMonsters(level);
-		level->tile[newPosition->y][newPosition->x] = '.';
-		user->DAMAGE++;
-		break;
+	    if (confirmPickup("DAMAGE")) {
+            playerMove(newPosition, user, level);
+            moveMonsters(level);
+            user->DAMAGE += 8;
+            level->tile[newPosition->y][newPosition->x] = '.';
+        }
+        break;
 	
 case '<': 
     if (current_level_of_player > 1) {
@@ -1229,7 +1298,6 @@ case '<':
 	case 'N':
 	    playerMove(newPosition, user,level);
 		moveMonsters(level);
-		
 		if(level->user->spoiled_food + level->user->magical_food + level->user->normal_food + level->user->excellent_food < 5){ 
 		    level->tile[newPosition->y][newPosition->x] = '.';
 			level->user->normal_food += 1;}
@@ -1250,6 +1318,16 @@ case '<':
 		    level->tile[newPosition->y][newPosition->x] = '.';
 			level->user->magical_food += 1;}
 		break;
+	case '%':
+		playerMove(newPosition, user,level);
+		moveMonsters(level);
+		level->tile[newPosition->y][newPosition->x] = '.';
+		int random_blackgold = rand() % 30 + 90;
+		level->user->gold += random_blackgold;
+		level->user->score += random_blackgold;
+		level->comment = "attention: You collect  GOLD!!!";
+		printGameHub(level);
+		break;
 	case '$':
 		playerMove(newPosition, user,level);
 		moveMonsters(level);
@@ -1258,8 +1336,6 @@ case '<':
 		level->user->gold += random_gold;
 		level->user->score += random_gold;
 		level->comment = "attention: You collect GOLD!!!";
-		printGameHub(level);
-		level->comment = " ";
 		printGameHub(level);
 		if(level->level == 5){
 			if(checkGoldRemaining(level) == 0){
