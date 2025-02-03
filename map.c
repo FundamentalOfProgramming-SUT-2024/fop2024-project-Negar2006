@@ -13,6 +13,8 @@ int game_dificulty = 3;
 int player_color = 2;
 Level ** lleevveell;
 int current_level_of_player = 1;
+char *previous_song = "music1.mp3";
+
 
 
 void printGameHub(Level * level);
@@ -35,7 +37,7 @@ void drawLevel(Level * level);
 Room ** room_set(Level *level);
 char ** saveLevelPositions();
 void revealRoom(Level *level, Room *room);
-void check_next_step(Position * newPosition, Level * level);
+void check_next_step(Position * newPosition, Level * level, const char * username);
 void placeTraps(Level * level);
 void placeDoors(Level * level);
 Level* createFinalBattleLevel(Player * player);
@@ -327,6 +329,7 @@ Player * playerSetUp() {
 	}
 	newPlayer->attack = 1;
 	newPlayer->gold = 0;
+	newPlayer->score = 0;
 	newPlayer->exp = 0;
 	newPlayer->maxHealth = 100;
 	newPlayer->hunger = 0;
@@ -345,6 +348,8 @@ Player * playerSetUp() {
 	newPlayer->SPEED = 0;
 	newPlayer->main_weapon = malloc(sizeof(char));
 	newPlayer->main_weapon = "Mase";
+	newPlayer->speed = 1;
+	newPlayer->speed_timer = 0;
 
 	return newPlayer;
 }
@@ -495,36 +500,36 @@ Position * handleInput(int input, Player * user, Level *level){
 	}
 	switch (input){
 	case '8':
-		newPosition->y = user->position->y - 1;
+		newPosition->y = user->position->y - user->speed;
 		newPosition->x = user->position->x;
 		break;
 	case '2':
-		newPosition->y = user->position->y + 1;
+		newPosition->y = user->position->y + user->speed;
 		newPosition->x = user->position->x;
 		break;
 	case '4':
 		newPosition->y = user->position->y;
-		newPosition->x = user->position->x - 1;
+		newPosition->x = user->position->x - user->speed;
 		break;
 	case '6':
 		newPosition->y = user->position->y;
-		newPosition->x = user->position->x + 1;
+		newPosition->x = user->position->x + user->speed;
 		break;
 	case '1':
-		newPosition->y = user->position->y + 1;
-		newPosition->x = user->position->x - 1;
+		newPosition->y = user->position->y + user->speed;
+		newPosition->x = user->position->x - user->speed;
 		break;
 	case '3':
-		newPosition->y = user->position->y + 1;
-		newPosition->x = user->position->x + 1;
+		newPosition->y = user->position->y + user->speed;
+		newPosition->x = user->position->x + user->speed;
 		break;
 	case '7':
-		newPosition->y = user->position->y - 1;
-		newPosition->x = user->position->x - 1;
+		newPosition->y = user->position->y - user->speed;
+		newPosition->x = user->position->x - user->speed;
 		break;
 	case '9':
-		newPosition->y = user->position->y - 1;
-		newPosition->x = user->position->x + 1;
+		newPosition->y = user->position->y - user->speed;
+		newPosition->x = user->position->x + user->speed;
 		break;
 	case 'n':
 	    visited_tiles(level);
@@ -534,33 +539,44 @@ Position * handleInput(int input, Player * user, Level *level){
 	int chouice = getch() - '0';
 	switch (chouice) {
         case 1:
-            if (user->normal_food > 0) {
-                user->normal_food--;
-                user->health = 100;
+            if (user->HEALTH > 0) {
+                user->HEALTH--;
+				if (!user->healthBoostApplied) { 
+                user->health += 10;          
+                user->healthBoostApplied = 1;
+                user->healthBoostEnd = time(NULL) + 10; 
+                }
+            break;
             }
             break;
         case 2:
-            if (user->excellent_food > 0) {
-                user->excellent_food--;
-                user->hunger -= excellent_food.hunger_reduction;
+            if (user->SPEED > 0) {
+                user->SPEED--;
+				user->speed = 2;
+				user->speed_timer = 5;
             }
             break;
         case 3:
-            if (user->spoiled_food > 0) {
-                user->spoiled_food--;
-                user->hunger -= spoiled_food.hunger_reduction;
+            if (user->DAMAGE > 0) {
+                user->DAMAGE--;
+				for(int i = 0 ; i < 5; i++){
+					weapons[i].damage *= 2;
+				}
             }
             break;
+		case 4: 
+		    user->speed = 1;
+			break;
         default:
             break;
-
+	}
 	clear();
     drawLevel(level);
     drawPlayer(user);
     mvprintw(0, 0, "Hunger: %d, Health: %d", user->hunger, user->health);
     refresh();
 	break;
-    }
+    
 	case 'E':
     displayFoodMenu(user);
 	int choice = getch() - '0';
@@ -574,7 +590,19 @@ Position * handleInput(int input, Player * user, Level *level){
         case 2:
             if (user->excellent_food > 0) {
                 user->excellent_food--;
-                user->hunger -= excellent_food.hunger_reduction;
+				user->health = 100;
+				char * name = user->main_weapon;
+				if(strcmp(name, "Mase")){
+					weapons[0].damage *= 2;
+				}else if(strcmp(name, "Sward")){
+					weapons[1].damage *= 2;
+				}else if(strcmp(name, "Magic Wand")){
+					weapons[2].damage *= 2;
+				}else if(strcmp(name, "Normal Arrow")){
+					weapons[3].damage *= 2;
+				}else {
+					weapons[4].damage *= 2;
+				}
             }
             break;
         case 3:
@@ -586,7 +614,9 @@ Position * handleInput(int input, Player * user, Level *level){
         case 4:
             if (user->magical_food > 0) {
                 user->magical_food--;
-                user->hunger -= magical_food.hunger_reduction;
+				user->health = 100;
+				user->speed = 2;
+				user->speed_timer = 5;
             }
             break;
         default:
@@ -715,10 +745,17 @@ void playerMove(Position * newPosition, Player * user, Level * level) {
 	int Y = user->position->y;
 	int X = user->position->x;
 	mvaddch(Y,X,level->tile[Y][X]);
+	for(int i = 0 ; i < user->speed; i++){
 	user->position->y = newPosition->y;
-	user->position->x = newPosition->x;
+	user->position->x = newPosition->x;}
 
 	level->visited[newPosition->y][newPosition->x] = 1;
+	if(user->speed_timer > 0){
+		user->speed_timer--;
+	}
+	else if(user->speed_timer == 0){
+			user->speed == 1;
+    }
 	drawPlayer(user);
 }
 void drawPlayer(Player * player) {
@@ -769,6 +806,13 @@ Level * createLevel(int level) {
 	int X = newLevel->rooms[5]->stairs->x = rand() % (newLevel->rooms[5]->width - 2) + newLevel->rooms[5]->position.x + 1;
 	newLevel->tile[Y][X] = '>';
 	mvprintw(Y,X,">");
+
+	if(newLevel->level > 1){
+	newLevel->rooms[0]->stairsss = malloc(sizeof(Position));
+	int Y0 = newLevel->rooms[0]->stairsss->y = rand() % (newLevel->rooms[0]->height - 2) + newLevel->rooms[0]->position.y + 1;
+	int X0 = newLevel->rooms[0]->stairsss->x = rand() % (newLevel->rooms[0]->width - 2) + newLevel->rooms[0]->position.x + 1;
+	newLevel->tile[Y0][X0] = '<';
+	mvprintw(Y0,X0,"<");}
 
 	int itemCount1 = 5;
     for (int i = 0; i < itemCount1; i++) {
@@ -842,9 +886,10 @@ void drawLevel(Level * level){
                         mvaddnwstr(y, x, symbol2,-1);
 						break;
 					case 'v':
-					    const wchar_t symbol3[] = L"\U00002734";//\U0001FA84
-						//assaye jadoyii
+					    attron(COLOR_PAIR(4));
+					    const wchar_t symbol3[] = L"\U00002734";
                         mvaddnwstr(y, x, symbol3,-1);
+						attroff(COLOR_PAIR(4));
 						break;
 					case 'a':
 					    const wchar_t symbol4[] = L"\U000027B3";
@@ -983,7 +1028,7 @@ void revealRoom(Level *level, Room *room){
 		}
 	}
 }
-void check_next_step(Position * newPosition, Level * level) {
+void check_next_step(Position * newPosition, Level * level, const char * username) {
 	Player * user;
 	user = level->user;
     switch (level->tile[newPosition->y][newPosition->x])
@@ -1039,7 +1084,59 @@ void check_next_step(Position * newPosition, Level * level) {
 		user->DAMAGE++;
 		break;
 	
-	 case '>':
+case '<': 
+    if (current_level_of_player > 1) {
+        clear();
+        mvprintw(18, 18, "Do you want to go back to the previous level?");
+        mvprintw(19, 18, "1. YES");
+        mvprintw(20, 18, "2. NO");
+        
+        int choice;
+        echo();
+        scanw("%d", &choice);
+        noecho();
+        
+        if (choice == 1) {
+            current_level_of_player--; 
+            
+            int previous_level = level->level;
+            Player *new_user = level->user;
+            if(lleevveell[previous_level - 1] == NULL){
+				lleevveell[previous_level - 1] = level;
+			}
+            free(level);
+				level = createLevel(previous_level -1);
+			    level->visited = malloc(sizeof(int *) * 40);
+			    for(int i = 0 ; i < 40; i++){
+				level->visited[i] = malloc(sizeof(int) * 180);
+				for(int j = 0; j < 180 ; j++){
+					level->visited[i][j] = 1;
+				}
+			}
+			level->level = previous_level -1;
+            level->user->health = new_user->health;
+            level->user->attack = new_user->attack;
+            level->user->gold = new_user->gold;
+            level->user->exp = new_user->exp;
+            level->user->hunger = new_user->hunger;
+            level->user->main_weapon = new_user->main_weapon;
+            level->user->Magic_wand = new_user->Magic_wand;
+            level->user->Normal_arrow = new_user->Normal_arrow;
+            level->user->Sward = new_user->Sward;
+            level->user->Mase = new_user->Mase;
+            level->user->Dagger = new_user->Dagger;
+            
+            level->user->position->x = level->rooms[5]->stairs->x;
+            level->user->position->y = level->rooms[5]->stairs->y;
+
+            drawLevel(level);
+        }
+    } else {
+        level->comment = "You cannot go back further!";
+        printGameHub(level);
+    }
+    break;
+	case '>':
 	    level->comment = "attention: You can go to next level!!!";
 		printGameHub(level);
 	    playerMove(newPosition, user,level);
@@ -1052,9 +1149,7 @@ void check_next_step(Position * newPosition, Level * level) {
 			Player * player = level->user;
 			free(level);
 			level = createFinalBattleLevel(player);
-			//attron(COLOR_PAIR(4));
 			drawLevel(level);
-			//attroff(COLOR_PAIR(4));
 			break;
 		}
 		clear();
@@ -1073,10 +1168,12 @@ void check_next_step(Position * newPosition, Level * level) {
 		    current_level_of_player += 1;
 		    int current_level =  level->level;
 		    Player *new_user = level->user; 
-		    clear();
-			lleevveell[current_level - 1] = level;
+		    if(lleevveell[current_level - 1] == NULL){
+			lleevveell[current_level - 1] = level;}
 			current_level++;
 		    free(level);
+			
+			clear();
 		    level = createLevel(current_level);
 			drawLevel(level);
 		
@@ -1159,6 +1256,7 @@ void check_next_step(Position * newPosition, Level * level) {
 		level->tile[newPosition->y][newPosition->x] = '.';
 		int random_gold = rand() % 30;
 		level->user->gold += random_gold;
+		level->user->score += random_gold;
 		level->comment = "attention: You collect GOLD!!!";
 		printGameHub(level);
 		level->comment = " ";
@@ -1170,6 +1268,7 @@ void check_next_step(Position * newPosition, Level * level) {
 				mvprintw(12,10, "GAME OVER");
 				refresh();
 				sleep(3);
+				save_user_info(username,level->user->score, level->user->gold);
 				exit(0);
 			}
 		}
@@ -1231,6 +1330,14 @@ void check_next_step(Position * newPosition, Level * level) {
 		if(level->secret_revealed == 0){
 			level->secret_revealed = 1;
 		}
+		previous_song = "music1.mp3";
+		Mix_HaltMusic();
+		Mix_Music *spellMusic = Mix_LoadMUS("music3.mp3");
+		if(spellMusic == NULL){
+			printf("Failed %s",Mix_GetError());
+		}else{
+			Mix_PlayMusic(spellMusic,-1);
+		}
 		level->comment = " You will go into Spell room  ";
 		printGameHub(level);
 		level->tile[newPosition->y][newPosition->x] = '.';
@@ -1242,19 +1349,25 @@ void check_next_step(Position * newPosition, Level * level) {
 	    newPosition->x = level->rooms[6]->position.x + 1;
 		newPosition->y = level->rooms[6]->position.y + 1;
 		playerMove(newPosition,level->user,level);
-		//moveMonsters(level);
 
 		while (true) {
         int newInput = getch(); 
 
         if (newInput == 'b') {
+			Mix_HaltMusic();
+			Mix_Music * originalMusic = Mix_LoadMUS(previous_song);
+			if(originalMusic != NULL){
+				Mix_PlayMusic(originalMusic,-1);
+			}
             level->user->position->x = level->secret.x;
             level->user->position->y = level->secret.y;
+			level->comment = "You left the Spell room! ";
+			printGameHub(level);
             break; 
 		}
 		 Position * newposition = malloc(sizeof(Position));
 		 newposition = handleInput(newInput, level->user,level);
-         check_next_step(newposition, level);
+         check_next_step(newposition, level, username);
 		
 		}
 		level->comment = " ";
@@ -1272,7 +1385,7 @@ void printGameHub(Level * level){
 	mvprintw(33,0,"____________________________________________________________________");
 	const wchar_t symbol0[] = L"\U0001F380";
     mvaddnwstr(34, 1, symbol0,-1);
-	mvprintw(34,4, "Level: %d | Health: %d/%d | Gold: %d | Experience: %d | Hunger: %d ", level->level, level->user->health,level->user->maxHealth,level->user->gold, level->user->exp, level->user->hunger);
+	mvprintw(34,4, "Level: %d | Health: %d/%d | Gold: %d | Experience: %d | Hunger: %d | Score: %d", level->level, level->user->health,level->user->maxHealth,level->user->gold, level->user->exp, level->user->hunger, level->user->score);
 	
 	const wchar_t symbol1[] = L"\U000026D4";
     mvaddnwstr(35, 1, symbol1,-1);

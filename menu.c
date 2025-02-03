@@ -10,18 +10,6 @@
 #include <locale.h>
 #include <wchar.h>
 
-#define FILENAME "users.txt"
-#define SCOREFILE "scores.txt"
-
-typedef struct {
-    char username[50];
-    char password[50];
-    char email[100];
-    int score;
-    int rank;
-} User;
-
-
 int user_exists(const char *username);
 int is_valid_password(const char *password);
 int is_valid_email(const char *email);
@@ -32,11 +20,6 @@ void hardness();
 void show_song_playlist();
 void play_song(const char *filename);
 void stop_music();
-void save_game_state(const char *username, Level *level);
-void save_user_info(const char *username, int score);
-int load_game_state(const char *username, Level *level);
-int load_user_info(const char *username, User *user);
-void save_level_to_txt(const char *username, Level *level);
 void change_player_color();
 
 void setting_menu(){
@@ -152,11 +135,11 @@ void show_users() {
     User user;
     int y = 5;
 
-    mvprintw(y++, 10, "Username           Password           Email           score           rank");
+    mvprintw(y++, 10, "Username           Password           Email");
     mvprintw(y++, 10, "--------------------------------------------------------------------------");
 
     while (fread(&user, sizeof(User), 1, file)) {
-        mvprintw(y++, 10, "%-16s %-16s %-16s %-16d %-16d", user.username, user.password, user.email, user.score, user.rank);
+        mvprintw(y++, 10, "%-16s %-16s %-16s", user.username, user.password, user.email);
     }
 
     fclose(file);
@@ -164,7 +147,7 @@ void show_users() {
     mvprintw(y + 1, 10, "Press any key to return to the main menu...");
     getch();
 }
-void show_users_score() {
+void show_users_score(const char *username) {
     setlocale(LC_ALL, "");
     FILE *file = fopen(FILENAME, "r");
     if (!file) {
@@ -190,44 +173,66 @@ void show_users_score() {
             }
         }
     }
-
     for (int i = 0; i < count; i++) {
         users[i].rank = i + 1; 
     }
 
     clear();
-    attron(COLOR_PAIR(2));
+    attron(COLOR_PAIR(2)); 
     mvprintw(1, 10, "==================================");
-    mvprintw(2, 10, " Scord_board ");
+    mvprintw(2, 10, " Scoreboard ");
     mvprintw(3, 10, "==================================");
     attroff(COLOR_PAIR(2));
 
     int y = 5;
-    mvprintw(y++, 10, "Username           Password           Email           Score           Rank  ");
-    mvprintw(y++, 10, "----------------------------------------------------------------------------");
+    mvprintw(y++, 10, "Username         Password         Email         Rank         Score         Gold");
+    mvprintw(y++, 10, "------------------------------------------------------------------------------------");
 
     for (int i = 0; i < count; i++) {
-        const char *medal = "";
-        
-        if (i == 0){
-            const wchar_t symbol[] = L"\U0001F947";
-            mvaddnwstr(++y, 7, symbol,-1);
-        } 
-        else if (i == 1){
-            const wchar_t symbol[] = L"\U0001F948";
-            mvaddnwstr(++y, 7, symbol,-1);
-        } 
-        else if (i == 2){
-            const wchar_t symbol[] = L"\U0001F949";
-            mvaddnwstr(++y, 7, symbol,-1);
-        } 
+        const wchar_t *medal = NULL;
+        if (i == 0) {
+            medal = L"\U0001F947"; 
+            attron(COLOR_PAIR(3)); 
+            mvprintw(y,2, "HERO");
+        } else if (i == 1) {
+            medal = L"\U0001F948"; 
+            attron(COLOR_PAIR(3)); 
+            mvprintw(y,2, "HERO");
+        } else if (i == 2) {
+            medal = L"\U0001F949"; 
+            attron(COLOR_PAIR(3));
+            mvprintw(y,2, "HERO"); 
+        }else{
+            attroff(COLOR_PAIR(3));
+        }
 
-        mvprintw(y++, 10, "%-16s %-16s %-16s %-16d %-16d", 
-                 users[i].username, 
-                 users[i].password, 
-                 users[i].email, 
-                 users[i].score, 
-                 users[i].rank);
+        if (strcmp(users[i].username, username) == 0) {
+            if (medal) {
+                mvaddnwstr(y, 7, medal, -1); 
+            }
+            mvprintw(y, 6, "*");
+            mvprintw(y++, 10, "%-16s %-16s %-16s %-8d %-8d %-8d", 
+                     users[i].username, 
+                     users[i].password, 
+                     users[i].email, 
+                     users[i].rank, 
+                     users[i].score,
+                     users[i].gold);
+            
+        } else {
+            if (medal) {
+                mvaddnwstr(y, 7, medal, -1); 
+            }
+            mvprintw(y++, 10, "%-16s %-16s %-16s %-8d %-8d %-8d", 
+                     users[i].username, 
+                     users[i].password, 
+                     users[i].email, 
+                     users[i].rank, 
+                     users[i].score,
+                     users[i].gold);
+        }
+
+        attroff(COLOR_PAIR(3));
     }
 
     mvprintw(y + 1, 10, "Press any key to return to the main menu...");
@@ -253,19 +258,40 @@ void Profile(const char * username){
    mvprintw(11,10,"Password: %s",user.password);
    mvprintw(12,10,"Email: %s",user.email);
    mvprintw(13,10,"Score: %d", user.score);
-   mvprintw(14,10,"Rank: %d",user.rank);
+   mvprintw(14,10,"Gold: %d", user.gold);
 
-   mvprintw(17,10,"Press 'q' to return to pre_game_menu: ");
+   mvprintw(17,10,"Press ENTER to return to pre_game_menu: ");
    char ch;
    do{
     ch = getch();
-   }while(ch != 'q');
+   }while(ch != '\n');
+}
+void updateFoodState(Player * user, time_t *last_food_update) {
+    time_t current_time = time(NULL);
+
+    if (difftime(current_time, *last_food_update) >= 40) {
+        
+        if (user->normal_food > 0) {
+            user->spoiled_food += user->normal_food; 
+            user->normal_food = 0;               
+        }
+        if (user->excellent_food > 0) {
+            user->normal_food += user->excellent_food; 
+            user->excellent_food = 0;
+        }
+        if (user->magical_food > 0) {
+            user->normal_food += user->magical_food;
+            user->magical_food = 0;                 
+        }
+        *last_food_update = current_time;
+    }
 }
 int gameLoop(const char * username, Level * level) {
 
     lleevveell = malloc(sizeof(Level *) * 4);
     for(int i = 0 ; i < 4; i++){
         lleevveell[i] = malloc(sizeof(Level));
+        lleevveell[i] = createLevel(i + 1);
     }
     if(game_dificulty == 1){
         level->user->health = 40;
@@ -281,6 +307,7 @@ int gameLoop(const char * username, Level * level) {
     time_t last_hunger_update = time(NULL);
     time_t last_health_decrease = time(NULL);
     time_t last_health_update = time(NULL);
+    time_t last_food_update = time(NULL);
 
     drawLevel(level);
     printGameHub(level);
@@ -294,7 +321,7 @@ int gameLoop(const char * username, Level * level) {
             char confirm = getch();
             if (confirm == 'y' || confirm == 'Y') {
                 save_game_state(username,level);
-                save_user_info(username,level->user->gold);
+                save_user_info(username,level->user->score,level->user->gold);
                 save_level_to_txt(username,level);
                 clear();
                 mvprintw(10, 10, "You saved the game!!!");
@@ -309,15 +336,21 @@ int gameLoop(const char * username, Level * level) {
         }
 
         newPosition = handleInput(ch, level->user, level);
-        check_next_step(newPosition, level);
+        check_next_step(newPosition, level,username);
         move(level->user->position->y, level->user->position->x);
 
+
+        if (level->user->healthBoostApplied && time(NULL) >= level->user->healthBoostEnd) {
+            level->user->healthBoostApplied = 0; 
+        }
         if (level->user->health <= 0) {
             clear();
             mvprintw(14, 14, "END");
+            save_user_info(username,level->user->score, level->user->gold);
             return -1;
         }
 
+        updateFoodState(level->user, &last_food_update);
         time_t current_time = time(NULL);
 
         if (difftime(current_time, last_hunger_update) >= 10) {
@@ -352,10 +385,10 @@ int gameLoop(const char * username, Level * level) {
 
     return 0; 
 }
-
 void pre_game_menu(const char *username , User * user) {
     int choice;
-    Level *level = createLevel(1); 
+
+    Level *level = createLevel(1);
 
     while (1) {
         clear();
@@ -366,13 +399,23 @@ void pre_game_menu(const char *username , User * user) {
         attroff(COLOR_PAIR(2));
 
         mvprintw(9, 10, "Welcome, %s!", username);
-        mvprintw(11, 10, "1. Start New Game");
-        mvprintw(12, 10, "2. Continue Previous Game");
-        mvprintw(13, 10, "3. Profile");
-        mvprintw(14, 10, "4. Settings");
-        mvprintw(15, 10, "5. Score Board");
-        mvprintw(16, 10, "6. Back to Main Menu");
-        mvprintw(19, 10, "Select an option: ");
+        if(strcmp(username, "Guest") != 0){
+        time_t rawtime;
+        struct tm *timeinfo;
+        char buffer[50];
+        time(&rawtime);
+        timeinfo = localtime(&rawtime);
+        strftime(buffer,50, "%Y-%m-%d %H: %M: %S",timeinfo);
+        mvprintw(11, 10, "First play: %s",buffer);
+        mvprintw(12, 10, "Times Entered: %d",user->playCount);}
+
+        mvprintw(14, 10, "1. Start New Game");
+        mvprintw(15, 10, "2. Continue Previous Game");
+        mvprintw(16, 10, "3. Profile");
+        mvprintw(17, 10, "4. Settings");
+        mvprintw(18, 10, "5. Score Board");
+        mvprintw(19, 10, "6. Back to Main Menu");
+        mvprintw(23, 10, "Select an option: ");
 
         echo();
         scanw("%d", &choice);
@@ -398,7 +441,7 @@ void pre_game_menu(const char *username , User * user) {
                 setting_menu();
                 break;
             case 5:
-                show_users_score();
+                show_users_score(username);
                 break;
             case 6:
                 return;
@@ -421,13 +464,12 @@ void guest_login() {
 }
 int login_user() {
     char username[50], password[50];
-    FILE *file = fopen(FILENAME, "r");
+    FILE *file = fopen(FILENAME, "r+");  
     if (!file) {
         mvprintw(5, 10, "User file missing!");
         getch();
         return 0;
     }
-
     while (1) {
         clear();
         attron(COLOR_PAIR(2));
@@ -447,18 +489,38 @@ int login_user() {
         noecho();
 
         User user;
+        long pos;
+        int found = 0;
+
         while (fread(&user, sizeof(User), 1, file)) {
             if (strcmp(user.username, username) == 0 && strcmp(user.password, password) == 0) {
-                fclose(file);
-                pre_game_menu(username,&user);
-                return 1;
+                found = 1;
+                break;
             }
+        }
+
+        if (found) {
+            user.playCount++;
+            if(user.first_play_time == 0){
+                user.first_play_time = time(NULL);
+            }
+
+            pos = ftell(file) - sizeof(User);
+            fseek(file, pos, SEEK_SET);
+
+            fwrite(&user, sizeof(User), 1, file);
+            fflush(file);  
+
+            fclose(file);
+            pre_game_menu(username, &user);
+            return 1;
         }
 
         attron(COLOR_PAIR(3));
         mvprintw(9, 10, "Invalid username or password. Try again.");
         attroff(COLOR_PAIR(3));
         getch();
+        fclose(file);
         return 0;
     }
 }
@@ -467,11 +529,6 @@ void reset_password() {
     int found = 0;
 
     FILE *file = fopen(FILENAME, "r+");
-    if (!file) {
-        mvprintw(5, 10, "User file missing!");
-        getch();
-        return;
-    }
 
     clear();
     attron(COLOR_PAIR(2));
@@ -531,11 +588,9 @@ void reset_password() {
 }
 
 void save_user(const User *user) {
+
     FILE *file = fopen(FILENAME, "a");
-    if (!file) {
-        perror("Error opening file");
-        return;
-    }
+    
     fwrite(user, sizeof(User), 1, file);
     fclose(file);
 }
@@ -606,7 +661,10 @@ void create_user_menu() {
         strcpy(new_user.username, username);
         strcpy(new_user.password, password);
         strcpy(new_user.email, email);
-
+        new_user.score = 0;
+        new_user.gold = 0;
+        new_user.playCount = 0;
+        
         save_user(&new_user);
         attron(COLOR_PAIR(4));
         mvprintw(18, 10, "User created successfully!");
@@ -768,174 +826,4 @@ void play_song(const char *filename) {
 void stop_music(){
     Mix_HaltMusic();
     Mix_CloseAudio();
-}
-void save_game_state(const char *username, Level *level){
-    char game_filename[100];
-    snprintf(game_filename, sizeof(game_filename), "%s_game.dat", username);
-    FILE *game_file = fopen(game_filename, "wb");
-    if (!game_file) {
-        perror("Error saving game state");
-        return;
-    }
-
-    fwrite(level, sizeof(Level), 1, game_file);
-
-    for (int i = 0; i < level->numberOfRooms; i++) {
-        fwrite(level->rooms[i], sizeof(Room), 1, game_file);
-    }
-
-    for (int i = 0; i < level->numberOfMonsters; i++) {
-        fwrite(level->monsters[i], sizeof(Monster), 1, game_file);
-    }
-
-    fwrite(level->user, sizeof(Player), 1, game_file);
-
-    fclose(game_file);
-}
-void save_user_info(const char *username, int score){
-    FILE *file = fopen(FILENAME, "r+");
-    if (!file) {
-        perror("Error opening user file");
-        return;
-    }
-
-    User user;
-    while (fread(&user, sizeof(User), 1, file)) {
-        if (strcmp(user.username, username) == 0) {
-            user.score = score;
-            fseek(file, -sizeof(User), SEEK_CUR);
-            fwrite(&user, sizeof(User), 1, file);
-            break;
-        }
-    }
-    fclose(file);
-}
-int load_game_state(const char *username, Level *level){
-    char game_filename[100];
-    snprintf(game_filename, sizeof(game_filename), "%s_game.dat", username);
-    FILE *game_file = fopen(game_filename, "rb");
-    if (!game_file) {
-        return 0; 
-    }
-    fread(level, sizeof(Level), 1, game_file);
-
-    for (int i = 0; i < level->numberOfRooms; i++) {
-        level->rooms[i] = malloc(sizeof(Room)); 
-        fread(level->rooms[i], sizeof(Room), 1, game_file);
-    }
-
-    for (int i = 0; i < level->numberOfMonsters; i++) {
-        level->monsters[i] = malloc(sizeof(Monster)); 
-        fread(level->monsters[i], sizeof(Monster), 1, game_file);
-    }
-
-    level->user = malloc(sizeof(Player)); 
-    fread(level->user, sizeof(Player), 1, game_file);
-
-    fclose(game_file);
-    return 1;
-}
-int load_user_info(const char *username, User *user){
-    FILE *file = fopen(FILENAME, "r");
-    if (!file) {
-        perror("Error opening user file");
-        return 0;
-    }
-
-    while (fread(user, sizeof(User), 1, file)) {
-        if (strcmp(user->username, username) == 0) {
-            fclose(file);
-            return 1; 
-        }
-    }
-    fclose(file);
-    return 0;
-}
-void save_level_to_txt(const char *username, Level *level) {
-    char level_filename[100];
-    snprintf(level_filename, sizeof(level_filename), "%s_level.txt", username);
-    FILE *level_file = fopen(level_filename, "w");
-    if (!level_file) {
-        perror("Error saving level data");
-        return;
-    }
-
-    fprintf(level_file, "Level: %d\n", level->level);
-    fprintf(level_file, "Number of Rooms: %d\n", level->numberOfRooms);
-    fprintf(level_file, "Number of Monsters: %d\n", level->numberOfMonsters);
-
-    fprintf(level_file, "Player Position: (%d, %d)\n", level->user->position->x, level->user->position->y);
-    fprintf(level_file, "Player Health: %d\n", level->user->health);
-    fprintf(level_file, "Player Hunger: %d\n", level->user->hunger);
-    fprintf(level_file, "Player Attack: %d\n", level->user->attack);
-    fprintf(level_file, "Player Gold: %d\n", level->user->gold);
-    for (int i = 0; i < level->numberOfRooms; i++) {
-        Room *room = level->rooms[i];
-        fprintf(level_file, "Room %d Position: (%d, %d)\n", i, room->position.x, room->position.y);
-        fprintf(level_file, "Room %d Dimensions: %d x %d\n", i, room->height, room->width);
-    }
-
-    for (int i = 0; i < level->numberOfMonsters; i++) {
-        Monster *monster = level->monsters[i];
-        fprintf(level_file, "Monster %d: Symbol: %c, Position: (%d, %d), Health: %d, Attack: %d\n",
-                i, monster->symbol, monster->position->x, monster->position->y, monster->health, monster->attack);
-    }
-
-
-    fprintf(level_file, "Tile Grid:\n");
-    for (int i = 0; i < 40; i++) { 
-        for (int j = 0; j < 150; j++) {
-            fprintf(level_file, "%c", level->tile[i][j]); 
-        }
-        fprintf(level_file, "\n"); 
-    }
-    fclose(level_file);
-}
-int load_level_from_txt(const char *username, Level *level) {
-    char level_filename[100];
-    snprintf(level_filename, sizeof(level_filename), "%s_level.txt", username);
-    FILE *level_file = fopen(level_filename, "r");
-    if (!level_file) {
-        return 0; 
-    }
-
-    char line[256];
-    while (fgets(line, sizeof(line), level_file)) {
-        if (strncmp(line, "Level: ", 7) == 0) {
-            sscanf(line, "Level: %d", &level->level);
-        } else if (strncmp(line, "Number of Rooms: ", 17) == 0) {
-            sscanf(line, "Number of Rooms: %d", &level->numberOfRooms);
-            level->rooms = malloc(level->numberOfRooms * sizeof(Room*)); 
-        } else if (strncmp(line, "Number of Monsters: ", 20) == 0) {
-            sscanf(line, "Number of Monsters: %d", &level->numberOfMonsters);
-            level->monsters = malloc(level->numberOfMonsters * sizeof(Monster*)); 
-        } else if (strncmp(line, "Player Position: ", 17) == 0) {
-            sscanf(line, "Player Position: (%d, %d)", &level->user->position->x, &level->user->position->y);
-        } else if (strncmp(line, "Player Health: ", 15) == 0) {
-            sscanf(line, "Player Health: %d", &level->user->health);
-        } else if (strncmp(line, "Player Hunger: ", 16) == 0) {
-            sscanf(line, "Player Hunger: %d", &level->user->hunger);
-        } else if (strncmp(line, "Player Attack: ", 15) == 0) {
-            sscanf(line, "Player Attack: %d", &level->user->attack);
-        } else if (strncmp(line, "Player Gold: ", 13) == 0) {
-            sscanf(line, "Player Gold: %d", &level->user->gold);
-        } else if (strncmp(line, "Room ", 5) == 0) {
-            int roomIndex = 0;
-            sscanf(line, "Room %d Position: (%d, %d)", &roomIndex, &level->rooms[roomIndex]->position.x, &level->rooms[roomIndex]->position.y);
-        } else if (strncmp(line, "Room Dimensions: ", 17) == 0) {
-            int roomIndex = 0;
-            sscanf(line, "Room %d Dimensions: %d x %d", &roomIndex, &level->rooms[roomIndex]->height, &level->rooms[roomIndex]->width);
-        } else if (strncmp(line, "Monster ", 8) == 0) {
-            int monsterIndex = 0;
-            char symbol;
-            sscanf(line, "Monster %d: Symbol: %c, Position: (%d, %d), Health: %d, Attack: %d",
-                   &monsterIndex, &symbol, &level->monsters[monsterIndex]->position->x,
-                   &level->monsters[monsterIndex]->position->y, &level->monsters[monsterIndex]->health,
-                   &level->monsters[monsterIndex]->attack);
-            level->monsters[monsterIndex]->symbol = symbol;
-        }
-    }
-
-    fclose(level_file);
-    return 1;
 }
