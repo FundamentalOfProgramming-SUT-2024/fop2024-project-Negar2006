@@ -84,10 +84,18 @@ Room * createRoom(int grid, int numberOfDoors)
 	    newRoom->position.x = 70;
 		newRoom->position.y = 8;
 		break;
+	case 7:
+	   newRoom->position.x = 75;
+	   newRoom->position.y = 17;
+		break;
+	case 8:
+	   newRoom->position.x = 100;
+	   newRoom->position.y = 8;
+		break;
 	default:
 	    break;
 	}
-	if(grid != 6){
+	if(grid != 6 && grid != 7){
 	newRoom->height = rand() % 6 + 6;
 	newRoom->width = rand() % 14 + 6;
 
@@ -127,7 +135,7 @@ Room * createRoom(int grid, int numberOfDoors)
 
 	newRoom->doors[1]->position.y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
 	newRoom->doors[1]->position.x = newRoom->position.x + newRoom->width - 1;
-	}else{
+	}else if(grid == 6){
 	
 	newRoom->height =  8;
 	newRoom->width =  14;
@@ -147,6 +155,42 @@ Room * createRoom(int grid, int numberOfDoors)
 	newRoom->doors = NULL;
 	newRoom->window = NULL;
 	
+	}else if(grid == 7){
+	newRoom->height =  6;
+	newRoom->width =  12;
+
+	newRoom->position.x +=  75;
+	newRoom->position.y +=  17 ;
+
+	newRoom->cols = malloc(sizeof(Position *) * 2);
+	for (int i = 0; i < 2; i++){
+		newRoom->cols[i] = malloc(sizeof(Position));
+	}
+	newRoom->cols[0]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->cols[0]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+
+	newRoom->cols[1]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->cols[1]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+	newRoom->doors = NULL;
+	newRoom->window = NULL;
+	}else{
+	newRoom->height =  6;
+	newRoom->width =  7;
+
+	newRoom->position.x +=  100;
+	newRoom->position.y +=  8;
+
+	newRoom->cols = malloc(sizeof(Position *) * 2);
+	for (int i = 0; i < 2; i++){
+		newRoom->cols[i] = malloc(sizeof(Position));
+	}
+	newRoom->cols[0]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->cols[0]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+
+	newRoom->cols[1]->x = rand() % (newRoom->width - 2) + newRoom->position.x + 1;
+	newRoom->cols[1]->y = rand() % (newRoom->height - 2) + newRoom->position.y + 1;
+	newRoom->doors = NULL;
+	newRoom->window = NULL;
 	}
 	return newRoom;
 }
@@ -740,6 +784,7 @@ void visited_tiles(Level * level){
 	}
 	level->trap_revealed = 1;
 	level->secret_revealed = 1;
+	level->nigth_revealed = 1;
 	printGameHub(level);
 	drawLevel(level);
 }
@@ -781,7 +826,7 @@ Level * createLevel(int level) {
 	Level * newLevel;
 	newLevel = malloc(sizeof(Level));
 	newLevel->level = level;
-	newLevel->numberOfRooms = 7;
+	newLevel->numberOfRooms = 9;
 	newLevel->rooms = room_set(newLevel);
 	connectDoors(newLevel);
     newLevel->tile = saveLevelPositions();
@@ -794,6 +839,7 @@ Level * createLevel(int level) {
 	newLevel->comment = "attention: You can only keep moving until you reach the wall AND be careful of the monsters!!!";
 	placeTraps(newLevel);
 	placeDoors(newLevel);
+	placenigtmare(newLevel);
 	placeFood(newLevel);
 	add_gold(newLevel);
 	add_blackGold(newLevel);
@@ -864,6 +910,29 @@ Level * createLevel(int level) {
 			newLevel->tile[y][x] = 'g';
 		}
     }
+	int itemCount4 = 4;
+    for (int i = 0; i < itemCount4; i++) {
+        Room *room = newLevel->rooms[8];
+        int x = rand() % (room->width - 2) + room->position.x + 1;
+        int y = rand() % (room->height - 2) + room->position.y + 1;
+
+        int itemType = rand() % 3; 
+        if (itemType == 0) {
+            newLevel->tile[y][x] = 'h'; 
+        } else if(itemType == 1){
+            newLevel->tile[y][x] = 'p'; 
+        }else {
+			newLevel->tile[y][x] = 'g';
+		}
+    }
+	for(int i = 0 ; i < 4; i++){
+		Monster *newMonster = malloc(sizeof(Monster));
+		newMonster->position = malloc(sizeof(Position));
+		newMonster = selectMonster(newLevel->level);
+		setStartingPosition(newMonster, newLevel->rooms[7], newLevel);
+		newLevel->monsters[newLevel->numberOfMonsters++] = newMonster;
+		newLevel->tile[newMonster->position->y][newMonster->position->x] = newMonster->symbol;
+	}
 	refresh();
     
 	return newLevel;
@@ -1061,9 +1130,9 @@ void drawLevel(Level * level){
 Room ** room_set(Level *level) {
 	int x;
 	Room ** rooms;
-	rooms = malloc(sizeof(Room)*7);
+	rooms = malloc(sizeof(Room)*9);
 	
-	for (x = 0; x < 7; x++) {
+	for (x = 0; x < 9; x++) {
 		
 		rooms[x] = createRoom(x, 4);
 		print_room(rooms[x], level);
@@ -1147,24 +1216,33 @@ void check_next_step(Position * newPosition, Level * level, const char * usernam
 	    if (confirmPickup("HEALTH")) {
             playerMove(newPosition, user, level);
             moveMonsters(level);
-            user->HEALTH += 8;
+            user->HEALTH += 1;
             level->tile[newPosition->y][newPosition->x] = '.';
+			if(newPosition->x >= level->rooms[8]->position.x && newPosition->y >= level->rooms[8]->position.y && newPosition->x <= level->rooms[8]->position.x + level->rooms[8]->width && newPosition->y <= level->rooms[8]->position.y + level->rooms[8]->height){
+				user->HEALTH -= 1;
+			}
         }
         break;
 	case 'p':
 	    if (confirmPickup("Speed Boost")) {
             playerMove(newPosition, user, level);
             moveMonsters(level);
-            user->SPEED += 8;
+            user->SPEED += 1;
             level->tile[newPosition->y][newPosition->x] = '.';
+			if(newPosition->x >= level->rooms[8]->position.x && newPosition->y >= level->rooms[8]->position.y && newPosition->x <= level->rooms[8]->position.x + level->rooms[8]->width && newPosition->y <= level->rooms[8]->position.y + level->rooms[8]->height){
+				user->SPEED -= 1;
+			}
         }
         break;
 	case 'g':
 	    if (confirmPickup("DAMAGE")) {
             playerMove(newPosition, user, level);
             moveMonsters(level);
-            user->DAMAGE += 8;
+            user->DAMAGE += 1;
             level->tile[newPosition->y][newPosition->x] = '.';
+			if(newPosition->x >= level->rooms[8]->position.x && newPosition->y >= level->rooms[8]->position.y && newPosition->x <= level->rooms[8]->position.x + level->rooms[8]->width && newPosition->y <= level->rooms[8]->position.y + level->rooms[8]->height){
+				user->DAMAGE -= 1;
+			}
         }
         break;
 	
@@ -1414,8 +1492,51 @@ case '<':
 		printGameHub(level);
 		level->user->health -= 5;
 		level->tile[newPosition->y][newPosition->x] = '.';
+
+		previous_song = "music1.mp3";
+		Mix_HaltMusic();
+		Mix_Music *spellMusic = Mix_LoadMUS("music3.mp3");
+		if(spellMusic == NULL){
+			printf("Failed %s",Mix_GetError());
+		}else{
+			Mix_PlayMusic(spellMusic,-1);
+		}
+		level->comment = " You will go into war room  ";
+		printGameHub(level);
+		level->tile[newPosition->y][newPosition->x] = '.';
+
+		attron(COLOR_PAIR(2));
+		revealRoom(level, level->rooms[7]);
+		attron(COLOR_PAIR(2));
+		
+	    newPosition->x = level->rooms[7]->position.x + 1;
+		newPosition->y = level->rooms[7]->position.y + 1;
+		playerMove(newPosition,level->user,level);
+		moveMonsters(level);
+
+		while (true) {
+        int newInput = getch(); 
+
+        if (newInput == 'b') {
+			Mix_HaltMusic();
+			Mix_Music * originalMusic = Mix_LoadMUS(previous_song);
+			if(originalMusic != NULL){
+				Mix_PlayMusic(originalMusic,-1);
+			}
+            level->user->position->x = level->traps.x;
+            level->user->position->y = level->traps.y;
+			level->comment = "You left the War room! ";
+			printGameHub(level);
+            break; 
+		}
+		 Position * newposition = malloc(sizeof(Position));
+		 newposition = handleInput(newInput, level->user,level);
+         check_next_step(newposition, level, username);
+		 drawLevel(level);
+		}
 		level->comment = " ";
 		printGameHub(level);
+	
 	}
 	if((newPosition->x == level->secret.x) && (newPosition->y == level->secret.y)){
 		if(level->secret_revealed == 0){
@@ -1463,6 +1584,51 @@ case '<':
 		}
 		level->comment = " ";
 		printGameHub(level);
+	}
+	if((newPosition->x == level->nigth.x) && (newPosition->y == level->nigth.y)){
+		if(level->nigth_revealed == 0){
+			level->nigth_revealed = 1;
+		}
+		previous_song = "music1.mp3";
+		Mix_HaltMusic();
+		Mix_Music *spellMusic = Mix_LoadMUS("music3.mp3");
+		if(spellMusic == NULL){
+			printf("Failed %s",Mix_GetError());
+		}else{
+			Mix_PlayMusic(spellMusic,-1);
+		}
+		level->comment = " You will go into nigthmare room  ";
+		printGameHub(level);
+		level->tile[newPosition->y][newPosition->x] = '.';
+
+		revealRoom(level, level->rooms[8]);
+		
+	    newPosition->x = level->rooms[8]->position.x + 1;
+		newPosition->y = level->rooms[8]->position.y + 1;
+		playerMove(newPosition,level->user,level);
+
+		while (true) {
+        int newInput = getch(); 
+
+        if (newInput == 'b') {
+			Mix_HaltMusic();
+			Mix_Music * originalMusic = Mix_LoadMUS(previous_song);
+			if(originalMusic != NULL){
+				Mix_PlayMusic(originalMusic,-1);
+			}
+            level->user->position->x = level->nigth.x;
+            level->user->position->y = level->nigth.y;
+			level->comment = "You left the nigthmare room! ";
+			printGameHub(level);
+            break; 
+		}
+		 Position * newposition = malloc(sizeof(Position));
+		 newposition = handleInput(newInput, level->user,level);
+         check_next_step(newposition, level, username);
+		
+		}
+		level->comment = " ";
+		printGameHub(level);
 	
 	}
 }
@@ -1472,8 +1638,8 @@ void printGameHub(Level * level){
 	const wchar_t symbol[] = L"\U0001F61C";
     mvaddnwstr(1, 0, symbol,-1);
 	mvprintw(1,4,"%s",level->comment);
-	mvprintw(40,0,"____________________________________________________________________");
-	mvprintw(33,0,"____________________________________________________________________");
+	mvprintw(41,0,"______________________________________________________________________________________________________");
+	mvprintw(33,0,"______________________________________________________________________________________________________");
 	const wchar_t symbol0[] = L"\U0001F380";
     mvaddnwstr(34, 1, symbol0,-1);
 	mvprintw(34,4, "Level: %d | Health: %d/%d | Gold: %d | Experience: %d | Hunger: %d | Score: %d", level->level, level->user->health,level->user->maxHealth,level->user->gold, level->user->exp, level->user->hunger, level->user->score);
@@ -1490,16 +1656,27 @@ void printGameHub(Level * level){
 	const wchar_t symbol4[] = L"\U0001F354";
     mvaddnwstr(38, 1, symbol4,-1);
 
+	const wchar_t symbol5[] = L"\U0001F399";
+    mvaddnwstr(39, 1, symbol5,-1);
+
+	const wchar_t symbol6[] = L"\U0001F375";
+    mvaddnwstr(40, 1, symbol6,-1);
+
 	mvprintw(35,4,"%s", "*press Enter to quit the game*");
 	mvprintw(36,4,"%s", "*press 'n' to see all the map*");
-	mvprintw(37,4,"%s", "*press 'i' to view inventory*");
-	mvprintw(38,4,"%s", "*press 'E' to view menu of food*");
+	mvprintw(37,4,"%s", "*press 'i' to view INVENTORY*");
+	mvprintw(38,4,"%s", "*press 'E' to view menu of FOOD*");
 	mvprintw(39,4,"%s", "*press 'N' to STOP music:/*");
+	mvprintw(40,4,"%s", "*press 'B' to view menu of SPELL*");
+	
 	if(level->trap_revealed){
 		mvprintw(level->traps.y,level->traps.x,"V");
 	}
 	if(level->secret_revealed){
 		mvprintw(level->secret.y,level->secret.x,"?");
+	}
+	if(level->nigth_revealed){
+		mvprintw(level->nigth.y,level->nigth.x,"N");
 	}
 }
 void placeTraps(Level * level){
@@ -1517,6 +1694,14 @@ void placeDoors(Level * level){
 	level->secret.x = (rand() % (room->width - 2)) + room->position.x + 1;
 	level->secret.y = (rand() % (room->height - 2)) + room->position.y + 1;
 	level->secret_revealed = 0;
+}
+void placenigtmare(Level * level){
+	int room_index = rand() % 6;
+	Room * room = level->rooms[room_index];
+
+	level->nigth.x = (rand() % (room->width - 2)) + room->position.x + 1;
+	level->nigth.y = (rand() % (room->height - 2)) + room->position.y + 1;
+	level->nigth_revealed = 0;
 }
 Level* createFinalBattleLevel(Player * player) {
 
@@ -1698,7 +1883,6 @@ void Kill_monster(Level * level, int direction){
 }
 
 }
-
 void animateProjectile(Level *level, int startX, int startY, int direction, char weapon_symbol, int range){
     int x = startX;
     int y = startY;

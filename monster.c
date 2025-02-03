@@ -34,6 +34,8 @@ typedef struct Level
     int trap_revealed;
     Position secret;
     int secret_revealed;
+    Position nigth;
+    int nigth_revealed;
 } Level;
 
 typedef struct Monster{
@@ -201,7 +203,6 @@ Monster * createMonster(char symbol, int health, int attack, int speed, int defe
     sprintf(newMonster->string, "%c", symbol);
 
     newMonster->position = malloc(sizeof(Position));
-    
 
     return newMonster;
 }
